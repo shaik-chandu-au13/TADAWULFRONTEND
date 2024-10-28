@@ -1,0 +1,439 @@
+/* Reset some default styles */
+body, h1, h2, p, ul, li, button {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f0f0f0;
+}
+
+/* Basic styling for the navigation bar */
+.navbar {
+  background-color: white; /* Background color */
+  overflow: hidden; /* Ensure content doesn't overflow */
+}
+
+/* Style the list (remove list-style and padding) */
+.navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style list items (horizontal layout) */
+.navbar ul li {
+  float: left;
+}
+
+/* Style links within list items */
+.navbar ul li a {
+  display: block;
+  color: black; /* Link text color */
+  text-align: center;
+  padding: 14px 16px; /* Padding around links */
+  text-decoration: none;
+}
+
+/* Change link color on hover */
+.navbar ul li a:hover {
+  background-color:#152c5e; /* Hover background color */
+  color: white; /* Hover text color */
+}
+
+.container {
+  max-width: 95%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header Styles */
+header {
+  background-color: #4f3d90;
+  color: #fff;
+  text-align: center;
+  padding: 20px 0;
+}
+
+#table {
+  margin-top: 20px;
+  width: 100%;
+  height: auto;
+  border-collapse: collapse;
+  background-color: white;
+  text-decoration: solid;
+  text-align: center;
+}
+
+form {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: #000000;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  text-align: left;
+}
+
+table, th, td {
+  border: 1px solid #0c0c0c;
+  text-align: left;
+
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+
+}
+
+/* new table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+
+}
+th {
+  background-color: #152c5e;
+  color: white;
+  text-align: left;
+
+}
+td {
+  background-color: #EEEAFD;
+  text-align: left;
+
+}
+.expand-collapse {
+  cursor: pointer;
+  color: blue;
+}
+/* Menu and submenu rows are visible by default */
+.submenu-row {
+  display: table-row;
+}
+/* Button Styles */
+button {
+  margin-top: 20px;
+  margin-left: 50px;
+  margin-bottom: 20px;
+  background-color: #6946c6;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #555;
+  color: white !important;
+}
+
+/* Modal Styles */
+/* .modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #6946c6;
+  padding: 20px;
+  text-align: center;
+  display: none;
+  border-radius: 10px; /* Adjust the value to control the roundness of the corners */
+  /* color: white; */
+/* } */ */
+
+/* .modal h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+} */
+
+/* Footer Styles */
+footer {
+  text-align: center;
+  background-color: #ffffff;
+  color: #000000;
+  padding: 10px 0;
+}
+
+/* Show the modal when needed */
+/* .modal.hidden {
+  display: block;
+}
+
+/* Show the close when needed */
+/* .modal.hidden {
+  display: none;
+} */ */
+
+#sitemap {
+  padding: 10px;
+  background-color: #c5b1f3;
+  font-weight: 100;
+}
+
+#heading {
+  background-color: #6946c6;
+  color: #fff;
+  font-size: larger;
+  text-align: center;
+}
+
+#saudiFont {
+  font-size: medium;
+}
+/* 
+#modalButton {
+  background-color: #000000;
+  border:#000000;
+}
+
+#modalButton:hover {
+  background-color: #a98ad7;
+} */
+
+.table-img {
+  position: absolute;
+  top: 0;
+}
+
+.left-img {
+  margin-top: 66px;
+  left: 0;
+  width: 110px; /* Adjust the width as needed */
+  height: 83px;
+}
+
+.right-img {
+  margin-top: 66px;
+  right: 0;
+  width: 110px; /* Adjust the width as needed */
+  height: 83px;
+}
+
+#languageForm {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#runPack {
+  background-color: #152c5e;
+  color: white;
+}
+
+/* Style the close button */
+/* #modalCloseButton {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  background-color: rgba(0.5 0, 0, 0);
+} */
+
+/* Style the close button on hover */
+/* #modalCloseButton:hover {
+  background-color: rgba(250, 36, 36, 0.197);
+} */
+
+.progress-bar {
+  height: 500px;
+  overflow: auto;
+}
+
+input {
+  float: none;
+  text-align: center;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 auto;
+}
+
+/* freeze the heading of table */
+/* Define a fixed height for the table and make the tbody scrollable */
+.progress-bar table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.progress-bar thead {
+  background-color: #f0f0f0; /* Set the background color for the header */
+  position: sticky;
+  top: 0;
+}
+
+.progress-bar tbody {
+  max-height: 400px; /* Set the maximum height for the scrollable area */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+.progress-bar th {
+  padding: 10px;
+  border: 1px solid #ddd; /* Add borders to the header cells */
+}
+
+.progress-bar td {
+  text-align: left;
+  padding: 10px;
+  border: 1px solid #ddd; /* Add borders to the content cells */
+}
+
+#h2 {
+  margin-top: 30px;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f4f4;
+}
+.header {
+  background-color: #152c5e;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.card-custom {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  padding: 20px;
+  margin-top: 20px;
+}
+label {
+  font-weight: 500;
+}
+.input-group-text {
+  background-color: #152c5e;
+  color: white;
+  border: none;
+}
+.btn-custom {
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 50px;
+  padding: 10px 20px;
+  transition: background-color 0.3s ease;
+}
+.btn-custom:hover {
+  background-color: #45a049;
+}
+.form-select, .form-control {
+  border-radius: 5px;
+}
+.table-responsive {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+footer {
+  text-align: center;
+  padding: 10px 0;
+  background-color: #152c5e;
+  color: white;
+  font-weight: bold;
+  position: fixed;
+  width: 100%;
+  bottom: 0;
+}
+/* .modal {
+  display: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding-top: 100px;
+}
+.modal-content {
+  background-color: white;
+  margin: auto;
+  padding: 20px;
+  border-radius: 10px;
+  width: 50%;
+  color: #000000;
+}
+.modal-content h2 {
+  font-size: 1.5rem;
+}
+.modal-content button {
+  margin-top: 10px;
+  margin-right: 10px;
+}
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 20px;
+  cursor: pointer;
+} */
+#dynamicTable thead th {
+  background-color: #152c5e; /* Change this to your desired color */
+  color: white; /* Text color */
+  text-align: center; /* Center align text */
+}
+.header {
+  background-color: #f8f9fa;
+  padding: 20px 0;
+}
+.header img {
+  height: 80px;
+}
+.header .navbar-brand {
+  font-size: 24px;
+  font-weight: bold;
+  color: #4b0082;
+}
+.header .navbar-nav a {
+  font-weight: bold;
+  color: #4b0082;
+}
+.header .left-img {
+  max-height: 80px;
+}
+.header-text {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  color: #ffffff;
+}
+
+#dashboard{
+  font-weight: bold; color: #000000; padding: 5px 10px;
+}
+#dashboard:hover{
+  font-weight: bold; color: #ffffff; padding: 5px 10px;
+}
+#admin{
+  font-weight: bold; color: #000000; padding: 5px 10px;
+}
+#admin:hover{
+  font-weight: bold; color: #ffffff; padding: 5px 10px;
+}
+.modal.d-none {
+  display: none;
+}
+.modal.show {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1050;
+  overflow-y: auto;
+}

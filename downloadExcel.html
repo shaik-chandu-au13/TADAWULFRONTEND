@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download JSON as Excel</title>
+</head>
+<body>
+    <button id="downloadExcel">Download Excel</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <script>
+        // Sample JSON data (you can replace this with fetched data)
+        const jsonData = [
+            {
+                "Status": "Pass",
+                "Expected": "",
+                "Type": "Navigation",
+                "Time": "15:18:57",
+                "Page": "Engage Page",
+                "Actual": "",
+                "Step": "User navigates to Engage submenu",
+                "Difference": "",
+                "Section": "Engage Submenu",
+                "Date": "2024-09-11",
+                "Scenario": "Validation of Engage"
+            },
+            {
+                "Status": "Fail",
+                "Expected": "Page Load",
+                "Type": "Validation",
+                "Time": "16:20:00",
+                "Page": "Home Page",
+                "Actual": "Page did not load",
+                "Step": "User tries to load Home page",
+                "Difference": "Timeout",
+                "Section": "Home",
+                "Date": "2024-09-12",
+                "Scenario": "Home page validation"
+            }
+        ];
+
+        // Function to download JSON data as Excel
+        function downloadExcel(data) {
+            const worksheet = XLSX.utils.json_to_sheet(data); // Convert JSON to worksheet
+            const workbook = XLSX.utils.book_new(); // Create a new workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data"); // Add worksheet to workbook
+            XLSX.writeFile(workbook, "data.xlsx"); // Download as Excel file
+        }
+
+        // Add event listener to button
+        document.getElementById('downloadExcel').addEventListener('click', function() {
+            downloadExcel(jsonData); // Call the function when the button is clicked
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+{
+    "Our_Markets": {
+        "Main_Market": [
+            "Main_Market_Watch",
+            "Opening/Closing_Prices",
+            "Market_Performance",
+            "Indices_Performance",
+            "Issuers_Trading_Information"
+        ],
+        "Nomu-Parallel_Market": [
+            "Nomu-Parallel_Market",
+            "Opening/Closing_Prices",
+            "Market_Performance",
+            "Indices_Performance",
+            "Issuers_Trading_Information"
+        ],
+        "Derivatives": [
+            "Derivative_Market_Watch",
+            "Products",
+            "Market_Performance",
+            "Trading_Calendar",
+            "Negotiated_Deals"
+        ],
+        "Sukuk/Bonds": [
+            "Sukuk/Bond_Market_Watch",
+            "Indices_Performance",
+            "Unlisted_Government_Sukuk/Bonds",
+            "Unlisted_Corporate_Sukuk/Bonds",
+            "Negotiated_Deals"
+        ],
+        "Funds": [
+            "Funds_Market_Watch",
+            "REITS",
+            "ETFS",
+            "CEFS",
+            "Mutual_Funds",
+            "Negotiated_Deals"
+        ]
+    },
+    "Listing": {
+        "Become_an_Issuer": [
+            "Listing_Incentives",
+            "Listing_Readiness_Assessment",
+            "Listing/Offering_Rules",
+            "Listing_Documents_and_Resources",
+            "Company_In_Focus",
+            "Meeting_Request"
+        ],
+        "Issuer_Guides": [
+            "Investor_Relations_Lab",
+            "Contact_Information_for_Investors_Relations_Officers",
+            "ESG_Guidelines"
+        ],
+        "Upcoming_Listings": []
+    },
+    "Trading": {
+        "Investing_and_Trading": [
+            "Become_an_Investor",
+            "Qualified_Foreign_Investors"
+        ],
+        "Participants": [
+            "Issuer_Directory",
+            "Members_Directory",
+            "Information_Provider_Directory",
+            "Become_a_Member",
+            "Become_an_Information_Provider"
+        ],
+        "Market_Services": [
+            "Equities",
+            "Sukuk_and_Bonds",
+            "Derivatives",
+            "Funds",
+            "Market_Information_Services",
+            "Market_Data",
+            "Indices_Data",
+            "eReference_Data"
+        ],
+        "Invest_Wisely": [
+            "Learn",
+            "Engage",
+            "Practice",
+            "Compete"
+        ],
+        "Saudi_200": []
+    },
+    "Market_News_and_Reports": {
+        "Issuer_News": [],
+        "Issuer_and_Financial_Advisor_Announcements": [],
+        "Issuer_Financial_Calendars": [
+            "Dividends",
+            "General_Assembly_Meetings",
+            "Board_of_Directors_Sessions",
+            "Corporate_Actions"
+        ],
+        "Issuer_Stock_Screener": [],
+        "Mutual_Fund_Screener": [],
+        "Reports_and_Publications": [
+            "Market_Reports",
+            "Historical_Reports",
+            "Foreign_Ownership",
+            "Member_Trading_Reports"
+        ]
+    },
+    "Rules_And_Guidance": {
+        "Capital_Market_Overview": [
+            "Equities",
+            "Sukuk_and_Bonds",
+            "Derivatives",
+            "Funds",
+            "Tradable_Rights",
+            "Industry_Classification",
+            "Trading_Cycle_and_Times",
+            "Closing_Auction_and_Trade-at-Last",
+            "Restriction_Periods_and_Financials_Deadlines"
+        ],
+        "Indices": [
+            "Index_Calculation_Methodology",
+            "MSCI_TADAWUL_30_Index",
+            "iBoxx_Tadawul_SAR_Government_Sukuk_and_Bond_Indices"
+        ],
+        "Fees": [],
+        "Market_Rules_and_Forms": [
+            "Capital_Market_Law",
+            "Exchange_and_Centre_Rules_and_Regulations",
+            "Bylaws",
+            "Disclosure_Forms"
+        ],
+        "FAQs": []
+    },
+    "About_Saudi_Exchange": {
+        "About_Us": [
+            "Saudi_Exchange",
+            "Annual_Reports",
+            "Strategy_Vision_and_Mission",
+            "Management_Team",
+            "Careers"
+        ],
+        "Exchange_Media_Centre": [
+            "Saudi_Exchange_Press_Releases",
+            "Saudi_Exchange_Holiday_Calendar",
+            "Saudi_Exchange_Events",
+            "Saudi_Exchange_Brand_guidelines",
+            "Multimedia"
+        ],
+        "Saudi_Capital_Market_Awards": [
+            "Best_Investor_Relations_Program_Award",
+            "Most_Notable_Listing_Award",
+            "Best_Broker_Award",
+            "Best_Custodian_Award"
+        ],
+        "Contact_Us": []
+    }
+}

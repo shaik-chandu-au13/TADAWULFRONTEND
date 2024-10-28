@@ -1,0 +1,43 @@
+label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+select {
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    opacity: 0;
+    /* Set initial opacity to 0 for animation */
+    transition: opacity 0.5s ease-in-out;
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.calendar-day {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.calendar-day:hover {
+    background-color: #eee;
+}
+
+/* Animation class to fade in the calendar */
+.fade-in {
+    opacity: 1;
+}

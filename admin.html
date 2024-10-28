@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin</title>
+    <link rel="icon" href="./images/download.png" type="image/x-icon" />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .navbar-1 {
+        background-color: #152c5e;
+        padding: 0.5rem;
+      }
+
+      .navbar-1 ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .navbar-1 ul li {
+        float: left;
+        margin-right: 20px;
+      }
+
+      .navbar-1 ul li a {
+        color: white;
+        text-decoration: none;
+        font-size: 1.2rem;
+      }
+
+      #jsonFormSection {
+        display: none;
+      }
+
+      .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      }
+
+      .btn-primary {
+        background-color: #007bff;
+        border: none;
+      }
+
+      .btn-primary:hover {
+        background-color: #0056b3;
+      }
+
+      #loginSection {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+      }
+
+      #footer-1 {
+        background-color: #152c5e;
+        color: white;
+        text-align: center;
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+      }
+      .scrollable-container {
+            height: 70vh; /* Adjust height as needed */
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+        .navbar {
+  background-color: white; /* Background color */
+  overflow: hidden; /* Ensure content doesn't overflow */
+}
+
+/* Style the list (remove list-style and padding) */
+.navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style list items (horizontal layout) */
+.navbar ul li {
+  float: left;
+}
+
+/* Style links within list items */
+.navbar ul li a {
+  display: block;
+  color: black; /* Link text color */
+  text-align: center;
+  padding: 14px 16px; /* Padding around links */
+  text-decoration: none;
+}
+
+/* Change link color on hover */
+.navbar ul li a:hover {
+  background-color:#152c5e; /* Hover background color */
+  color: white; /* Hover text color */
+}
+#admin {
+  background-color: #152c5e;
+  color: white;
+}
+
+    </style>
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header style="background-color: #152c5e;padding:20px 0" class="container-fluid shadow-sm">
+      <div class="row align-items-center">
+        <!-- Left Image -->
+        <div class="col-md-2 text-left">
+          <img
+            src="./images/SaudiExchange.jpg"
+            alt="Saudi Exchange Logo"
+            class="img-fluid"
+            style="max-height: 143px"
+          />
+        </div>
+        <!-- Title and Description -->
+        <div class="col-md-8 text-center">
+          <h1 style="color: white" class="fw-bold mb-0">
+            Saudi Exchange Automation Pack Selection
+          </h1>
+        </div>
+      </div>
+    </header>    
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" style="padding: 0; height: 40px;">
+        <div class="container" style="max-width: 95%;">
+            <ul class="navbar-nav mr-auto" style="height: 100%; display: flex; align-items: center;color: rgb(0, 0, 0);">
+                <li class="nav-item">
+                    <a class="nav-link " href="./home_page.html" id="runPack" style="font-weight: bold; padding: 5px 10px;">Run Pack</a>
+                </li>
+                <li class="nav-item">
+                    <a style="font-weight: bold; padding: 5px 10px;" class="nav-link " href="./dashboard.html" id="dashboard">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a style="font-weight: bold; padding: 5px 10px;" id="admin" class="nav-link active"href="#" id="admin">Admin</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- <div class="navbar-1">
+        <ul class="container">
+         <ul class="navbar-nav mr-auto" style="height: 100%; display: flex; align-items: center;color: rgb(0, 0, 0);">
+                <li class="nav-item">
+                    <a class="nav-link " href="./home_page.html" id="runPack" style="font-weight: bold; padding: 5px 10px;">Run Pack</a>
+                </li>
+                <li class="nav-item">
+                    <a style="font-weight: bold; padding: 5px 10px;" class="nav-link " href="./dashboard.html" id="dashboard">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a style="font-weight: bold; padding: 5px 10px;" id="admin" class="nav-link active"href="#" id="admin">Admin</a>
+                </li>
+            </ul>
+        </ul>
+      </div> -->
+    <div class="container-fluid scrollable-container">
+
+    <!-- Navbar -->
+    
+
+    <!-- Login Section -->
+    <div id="loginSection" class="container" style="margin-bottom: 2rem">
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          <h2 class="text-center mt-5">Login</h2>
+          <form id="loginForm" class="bg-light p-4 shadow-sm rounded">
+            <div class="mb-3">
+              <label for="userId" class="form-label">User ID</label>
+              <input
+                type="text"
+                id="userId"
+                class="form-control"
+                placeholder="Enter User ID"
+                required
+              />
+            </div>
+            <div class="mb-3" id="passwordField" style="display: none">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                id="password"
+                class="form-control"
+                placeholder="Enter Password"
+                required
+              />
+            </div>
+            <div class="d-flex justify-content-center mb-3">
+              <button type="button" class="btn btn-primary" onclick="login()">
+                Login
+              </button>
+            </div>
+            <div class="d-flex justify-content-center">
+              <p id="loginError" class="text-danger mt-3" style="display: none">
+                Invalid User ID or Password.
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON Form Section -->
+    <div id="jsonFormSection" class="container mt-5">
+      <div class="d-flex justify-content-end mt-3">
+        <button type="button" class="btn btn-danger" onclick="logout()">
+          Logout
+        </button>
+      </div>
+      <h2 class="text-center">Manage Page, Menu and Submenu</h2>
+
+      <form id="jsonForm" class="bg-light p-4 shadow-sm rounded">
+        <!-- Add Section -->
+        <div class="mb-3">
+          <label for="newMainCategory" class="form-label">Page</label>
+          <input
+            type="text"
+            id="newMainCategory"
+            class="form-control"
+            placeholder="Enter new or existing page name"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="newMenu" class="form-label">Menu</label>
+          <input
+            type="text"
+            id="newMenu"
+            class="form-control"
+            placeholder="Enter new or existing Menu Name"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="newPages" class="form-label">Sub Menu </label>
+          <input
+            type="text"
+            id="newPages"
+            class="form-control"
+            placeholder="Enter new submenu"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn btn-success w-100 mb-3"
+          onclick="addToJson()"
+        >
+          Add to runpack list
+        </button>
+
+        <!-- Delete Section -->
+        <h4>Delete</h4>
+        <div class="mb-3">
+          <label for="selectMainCategory" class="form-label">Select Page</label>
+          <select
+            id="selectMainCategory"
+            class="form-select"
+            onchange="populateMenus()"
+          >
+            <option value="">--Select Page--</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="selectMenu" class="form-label">Select Menu</label>
+          <select
+            id="selectMenu"
+            class="form-select"
+            onchange="populatePages()"
+          >
+            <option value="">--Select Menu--</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="selectPage" class="form-label">Select Sub Menu</label>
+          <select id="selectPage" class="form-select">
+            <option value="">--Select Sub Menu--</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          class="btn btn-danger w-100"
+          onclick="deleteFromJson()"
+        >
+          Delete
+        </button>
+      </form>
+
+      <!-- <h4 class="mt-5">Updated JSON Data:</h4>
+        <pre id="jsonDisplay" class="bg-dark text-light p-3 rounded"></pre> -->
+
+      <!-- Logout Button -->
+    </div>
+</div>
+
+    <!-- Footer -->
+    <footer id="footer-1">
+      <b>Copyright © 2024 - Expleo Solutions Limited</b>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript Logic -->
+    <script>
+      // Hardcoded credentials
+      const validUser = {
+        userId: "admin",
+        password: "1234",
+      };
+
+      // Function to handle login
+      document.getElementById("userId").onchange = function () {
+        const enteredUserId = this.value;
+        const passwordField = document.getElementById("passwordField");
+
+        // Show password field if user ID is filled
+        if (enteredUserId) {
+          passwordField.style.display = "block";
+        } else {
+          passwordField.style.display = "none"; // Hide if user ID is empty
+        }
+      };
+
+      function login() {
+        const enteredUserId = document.getElementById("userId").value;
+        const enteredPassword = document.getElementById("password").value;
+        const loginError = document.getElementById("loginError");
+
+        // Reset error display
+        loginError.style.display = "none";
+
+        // Validation for User ID
+        if (!enteredUserId) {
+          loginError.textContent = "Please enter your User ID.";
+          loginError.style.display = "block";
+          document.getElementById("passwordField").style.display = "none"; // Hide password field
+          return;
+        }
+
+        // Validation for Password
+        if (!enteredPassword) {
+          loginError.textContent = "Please enter your password.";
+          loginError.style.display = "block";
+          return;
+        }
+
+        // Check credentials
+        if (
+          enteredUserId === validUser.userId &&
+          enteredPassword === validUser.password
+        ) {
+          document.getElementById("loginSection").style.display = "none";
+          document.getElementById("jsonFormSection").style.display = "block";
+          populateMainCategories(); // Populate categories after login
+        } else {
+          loginError.textContent = "Invalid User ID or Password.";
+          loginError.style.display = "block";
+        }
+      }
+
+      let pageData = {};
+
+      fetch("./thisJSONcreatesHomepage.json")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          pageData = data; // Store the JSON data in pageData
+          console.log(pageData); // Use the pageData variable
+          displayJsonData(); // Call your function to display the data
+          populateMainCategories(); // Populate categories after fetching data
+        })
+        .catch((error) => console.error("Error loading JSON:", error));
+
+      // Function to display initial JSON data
+      function displayJsonData() {
+        document.getElementById("jsonDisplay").textContent = JSON.stringify(
+          pageData,
+          null,
+          2
+        );
+      }
+
+      function populateMainCategories() {
+        const mainCategorySelect =
+          document.getElementById("selectMainCategory");
+        mainCategorySelect.innerHTML = `<option value="">--Select Page--</option>`;
+        for (const category in pageData) {
+          const option = document.createElement("option");
+          option.value = category;
+          option.textContent = category;
+          mainCategorySelect.appendChild(option);
+        }
+      }
+
+      function populateMenus() {
+        const mainCategory =
+          document.getElementById("selectMainCategory").value;
+        const menuSelect = document.getElementById("selectMenu");
+        menuSelect.innerHTML = `<option value="">--Select Menu--</option>`;
+        if (mainCategory && pageData[mainCategory]) {
+          for (const menu in pageData[mainCategory]) {
+            const option = document.createElement("option");
+            option.value = menu;
+            option.textContent = menu;
+            menuSelect.appendChild(option);
+          }
+        }
+        populatePages(); // Clear pages when changing menu
+      }
+
+      function populatePages() {
+        const mainCategory =
+          document.getElementById("selectMainCategory").value;
+        const menu = document.getElementById("selectMenu").value;
+        const pageSelect = document.getElementById("selectPage");
+        pageSelect.innerHTML = `<option value="">--Select Sub menu--</option>`;
+        if (mainCategory && menu && pageData[mainCategory][menu]) {
+          pageData[mainCategory][menu].forEach((page) => {
+            const option = document.createElement("option");
+            option.value = page;
+            option.textContent = page;
+            pageSelect.appendChild(option);
+          });
+        }
+      }
+
+      function addToJson() {
+        const mainCategory = document
+          .getElementById("newMainCategory")
+          .value.trim()
+          .replace(/\s+/g, "_");
+        const menu = document
+          .getElementById("newMenu")
+          .value.trim()
+          .replace(/\s+/g, "_");
+        const page = document
+          .getElementById("newPages")
+          .value.trim()
+          .replace(/\s+/g, "_");
+
+        if (mainCategory && menu && page) {
+          if (!pageData[mainCategory]) {
+            pageData[mainCategory] = {};
+          }
+          // Check if the page is already added to avoid duplicates
+          if (!pageData[mainCategory][menu]) {
+            pageData[mainCategory][menu] = [];
+          }
+          if (!pageData[mainCategory][menu].includes(page)) {
+            pageData[mainCategory][menu].push(page); // Add the single page
+          }
+          document.getElementById("jsonDisplay").textContent = JSON.stringify(
+            pageData,
+            null,
+            2
+          );
+          populateMainCategories();
+          alert("Added successfully!");
+
+          // Send updated data to server
+          saveJsonData(pageData);
+        } else {
+          alert("Please fill all fields correctly.");
+        }
+      }
+
+      async function deleteFromJson() {
+        const mainCategory =
+          document.getElementById("selectMainCategory").value;
+        const menu = document.getElementById("selectMenu").value;
+        const page = document.getElementById("selectPage").value;
+
+        // Check if mainCategory is selected
+        if (mainCategory) {
+          // If only mainCategory is selected, delete the entire category
+          if (!menu) {
+            delete pageData[mainCategory];
+            alert("Main category deleted successfully!");
+          }
+          // If mainCategory and menu are selected
+          else if (menu) {
+            // If page is selected, delete that specific page
+            if (page) {
+              pageData[mainCategory][menu] = pageData[mainCategory][
+                menu
+              ].filter((p) => p !== page);
+              alert("Page deleted successfully!");
+            }
+            // If no page is selected, delete the entire menu
+            else {
+              delete pageData[mainCategory][menu];
+              alert("Menu deleted successfully!");
+            }
+
+            // Check if the main category is now empty and delete it if so
+            if (Object.keys(pageData[mainCategory]).length === 0) {
+              delete pageData[mainCategory];
+              alert("Main category deleted successfully!"); // Optional: you can adjust the message here
+            }
+          }
+
+          // Update the displayed JSON and repopulate categories
+          document.getElementById("jsonDisplay").textContent = JSON.stringify(
+            pageData,
+            null,
+            2
+          );
+          populateMainCategories();
+
+          // Send updated data to server
+          saveJsonData(pageData);
+        } else {
+          alert("Please select a main category to delete.");
+        }
+      }
+      function saveJsonData(pageData) {
+        console.log(pageData);
+        fetch("http://localhost:8082/update-json", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(pageData), // Send the current JSON data
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log(data.message); // Success message
+          })
+          .catch((error) => {
+            console.error("Error updating JSON:", error);
+          });
+      }
+
+      function logout() {
+        document.getElementById("jsonFormSection").style.display = "none";
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("userId").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("loginError").style.display = "none";
+      }
+
+      // Initialize the page by displaying initial JSON data and populating main categories
+      displayJsonData();
+      populateMainCategories();
+    </script>
+  </body>
+</html>

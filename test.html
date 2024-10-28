@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Table with Checkbox and Expand/Collapse</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #9370DB;
+            color: white;
+        }
+        td {
+            background-color: #EEEAFD;
+        }
+        .expand-collapse {
+            cursor: pointer;
+            color: blue;
+        }
+        /* Menu and submenu rows are visible by default */
+        .submenu-row {
+            display: table-row;
+        }
+    </style>
+</head>
+<body>
+
+    <table id="dynamicTable">
+        <thead>
+            <tr>
+                <th>Pages</th>
+                <th>Menu</th>
+                <th>Submenu</th>
+                <th>Desktop Chrome</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        const pageData = {
+            "Page1": { 
+                "menu11": ['submenu111', 'submenu112', 'submenu113'], 
+                "menu12": ['submenu121', 'submenu122', 'submenu123'] 
+            },
+            "Page2": {
+                "menu21": ['submenu211', 'submenu212', 'submenu213'],
+                "menu22": [],
+                "menu33": ['submenu221', 'submenu222', 'submenu223']
+            }
+        };
+
+        const tableBody = document.querySelector('#dynamicTable tbody');
+
+        function createRow(page, menu = '', submenu = '', className = '', rowType = '') {
+            const row = document.createElement('tr');
+            row.className = rowType; // Assign class for row type (menu, submenu)
+
+            const pageCell = document.createElement('td');
+            const menuCell = document.createElement('td');
+            const submenuCell = document.createElement('td');
+            const checkboxCell = document.createElement('td');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = className; // Assign the class to checkbox for group selection
+
+            // Only the first cell should be clickable for expand/collapse on page rows
+            if (rowType === 'page-row') {
+                const expandCollapse = document.createElement('span');
+                expandCollapse.textContent = '[-]'; // Default to expanded state
+                expandCollapse.className = 'expand-collapse';
+                pageCell.appendChild(expandCollapse);
+                pageCell.appendChild(document.createTextNode(page)); // Add page name next to the expand button
+            } else {
+                pageCell.textContent = page;
+            }
+
+            menuCell.textContent = menu;
+            submenuCell.textContent = submenu;
+
+            checkboxCell.appendChild(checkbox);
+            row.appendChild(pageCell);
+            row.appendChild(menuCell);
+            row.appendChild(submenuCell);
+            row.appendChild(checkboxCell);
+
+            tableBody.appendChild(row);
+
+            return checkbox;
+        }
+
+        Object.keys(pageData).forEach(page => {
+            const pageCheckbox = createRow(page, '', '', `page-checkbox-${page}`, 'page-row');
+            
+            // When page checkbox is clicked, it selects/deselects all menu and submenu checkboxes under the page
+            pageCheckbox.addEventListener('change', function () {
+                const relatedCheckboxes = document.querySelectorAll(`.page-checkbox-${page}, .menu-checkbox-${page}, .submenu-checkbox-${page}`);
+                relatedCheckboxes.forEach(cb => cb.checked = this.checked);
+            });
+
+            // Expand/Collapse functionality for page rows
+            const expandCollapse = tableBody.querySelector(`.page-row:last-child .expand-collapse`);
+            expandCollapse.addEventListener('click', function () {
+                const menuRows = document.querySelectorAll(`.menu-row-${page}`);
+                const isCollapsed = menuRows[0].style.display === 'none';
+                menuRows.forEach(row => row.style.display = isCollapsed ? 'table-row' : 'none');
+                expandCollapse.textContent = isCollapsed ? '[-]' : '[+]';
+            });
+
+            Object.keys(pageData[page]).forEach(menu => {
+                const menuCheckbox = createRow('', menu, '', `menu-checkbox-${page}`, `menu-row menu-row-${page}`);
+
+                // When menu checkbox is clicked, it selects/deselects all submenu checkboxes under the menu
+                menuCheckbox.addEventListener('change', function () {
+                    const submenuCheckboxes = document.querySelectorAll(`.submenu-checkbox-${menu}`);
+                    submenuCheckboxes.forEach(cb => cb.checked = this.checked);
+                });
+
+                // Check if the submenu is not empty before adding
+                if (pageData[page][menu].length > 0) {
+                    pageData[page][menu].forEach(submenu => {
+                        createRow('', '', submenu, `submenu-checkbox-${menu} submenu-checkbox-${page}`, `submenu-row menu-row-${page}`);
+                    });
+                }
+            });
+        });
+
+    </script>
+
+</body>
+</html>

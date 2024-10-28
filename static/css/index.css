@@ -1,0 +1,283 @@
+
+
+/* Reset some default styles */
+body, h1, h2, p, ul, li, button {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f0f0f0;
+}
+
+
+
+/* Basic styling for the navigation bar */
+.navbar {
+  background-color: white; /* Background color */
+  overflow: hidden; /* Ensure content doesn't overflow */
+}
+
+/* Style the list (remove list-style and padding) */
+.navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style list items (horizontal layout) */
+.navbar ul li {
+  float: left;
+}
+
+/* Style links within list items */
+.navbar ul li a {
+  display: block;
+  color: black; /* Link text color */
+  text-align: center;
+  padding: 14px 16px; /* Padding around links */
+  text-decoration: none;
+}
+
+/* Change link color on hover */
+.navbar ul li a:hover {
+  background-color: #6946c6; /* Hover background color */
+  color: white; /* Hover text color */
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header Styles */
+header {
+  background-color: #4f3d90;
+  color: #fff;
+  text-align: center;
+  padding: 20px 0;
+}
+
+#table {
+  margin-top: 20px;
+  width: 100%;
+  height: auto;
+  border-collapse: collapse;
+  background-color: white;
+  text-decoration: solid;
+  text-align: center;
+}
+
+form {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: #000000;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  text-align: left;
+}
+
+table, th, td {
+  border: 1px solid #0c0c0c;
+}
+
+th, td {
+  padding: 10px;
+}
+
+
+/* Button Styles */
+button {
+  margin-top: 20px;
+  margin-left: 50px;
+  margin-bottom: 20px;
+  background-color: #6946c6;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #6946c6;
+  padding: 20px;
+  text-align: center;
+  display: none;
+  border-radius: 10px; /* Adjust the value to control the roundness of the corners */
+  color: white;
+}
+
+.modal h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+/* Footer Styles */
+footer {
+  text-align: center;
+  padding: 10px;
+  background-color: #f8f8f8; /* Adjust the background color as needed */
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  font-size: medium;
+}
+
+/* Show the modal when needed */
+.modal.hidden {
+  display: block;
+}
+
+/* Show the close when needed */
+.modal.hidden {
+  display: none;
+}
+
+#sitemap {
+  padding: 10px;
+  background-color: #c5b1f3;
+  font-weight: 100;
+}
+
+#heading {
+  background-color: #6946c6;
+  color: #fff;
+  font-size: larger;
+  text-align: center;
+}
+
+#saudiFont {
+  font-size: medium;
+}
+
+#modalButton {
+  background-color: #000000;
+  border:#000000;
+}
+
+#modalButton:hover {
+  background-color: #a98ad7;
+}
+
+.table-img {
+  position: absolute;
+  top: 0;
+}
+
+.left-img {
+  margin-top: 66px;
+  left: 0;
+  width: 110px; /* Adjust the width as needed */
+  height: 83px;
+}
+
+.right-img {
+  margin-top: 66px;
+  right: 0;
+  width: 110px; /* Adjust the width as needed */
+  height: 83px;
+}
+
+#languageForm {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#runPack {
+  background-color: #8164d1;
+}
+
+/* Style the close button */
+#modalCloseButton {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  background-color: rgba(0.5 0, 0, 0);
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* Style the close button on hover */
+#modalCloseButton:hover {
+  color: red;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.progress-bar {
+  height: 500px;
+  overflow: auto;
+}
+
+input {
+  float: none;
+  text-align: center;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 auto;
+}
+
+/* freeze the heading of table */
+/* Define a fixed height for the table and make the tbody scrollable */
+.progress-bar table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.progress-bar thead {
+  background-color: #f0f0f0; /* Set the background color for the header */
+  position: sticky;
+  top: 0;
+}
+
+.progress-bar tbody {
+  max-height: 400px; /* Set the maximum height for the scrollable area */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+.progress-bar th {
+  padding: 10px;
+  border: 1px solid #ddd; /* Add borders to the header cells */
+}
+
+.progress-bar td {
+  text-align: left;
+  padding: 10px;
+  border: 1px solid #ddd; /* Add borders to the content cells */
+}
+
+#h2 {
+  margin-top: 30px;
+}
+#dynamicTable thead th {
+  background-color: #9370DB; /* Change this to your desired color */
+  color: white; /* Text color */
+  text-align: center; /* Center align text */
+}
+
+/* Make specific header cells bold */
+#dynamicTable thead th:first-child, /* Pages */
+#dynamicTable thead th:nth-child(2) { /* Menu */
+  font-weight: bold; /* Bold text */
+}

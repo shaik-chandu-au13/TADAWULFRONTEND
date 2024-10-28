@@ -1,0 +1,408 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    /* overflow-y: auto; Enable vertical scrolling */
+    max-height: 100vh; /* Ensure that the content doesn't exceed viewport height */
+}
+
+/* Basic styling for the navigation bar */
+.navbar-1 {
+    background-color: whitesmoke;
+    /* Background color */
+    overflow: hidden;
+    /* Ensure content doesn't overflow */
+    margin-bottom: 20px;
+}
+
+/* Style the list (remove list-style and padding) */
+.navbar-1 ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Style list items (horizontal layout) */
+.navbar-1 ul li {
+    float: left;
+}
+
+/* Style links within list items */
+.navbar-1 ul li a {
+    display: block;
+    color: black;
+    /* Link text color */
+    text-align: center;
+    padding: 14px 16px;
+    /* Padding around links */
+    text-decoration: none;
+}
+
+/* Change link color on hover */
+.navbar-1 ul li a:hover {
+    background-color: #152c5e;
+    /* Hover background color */
+    color: white;
+    /* Hover text color */
+}
+
+.container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* CSS for buttons */
+.button {
+    position: absolute;
+    padding: 10px;
+    background-color: white;
+    color: black;
+    border: 2px solid black;
+    /* Set the border color and width */
+    border-radius: 5px;
+    /* Set the corner radius for a normal curve */
+    cursor: pointer;
+}
+
+.button.top-left {
+    top: 10px;
+    /* Position the top-left button */
+    left: 10px;
+}
+
+#button2 {
+    top: 10px;
+    /* Position the second button below the first one */
+    left: 100px;
+    /* Adjust the left position to create space between the buttons */
+}
+
+
+
+.content {
+    flex: 95;
+    /* 95% of the available space for the content */
+    background-color: white;
+    /* Background color for the content */
+}
+
+
+#saudi,
+#expleo {
+    width: 110px;
+    /* Adjust the width as needed */
+    height: 83px;
+}
+
+/* Below the header  */
+.block {
+    flex: 10;
+    /* Twice the height of the header (2 * 5) */
+    background-color: rgb(214, 228, 181);
+    /* Background color for the block */
+    color: white;
+    /* Text color for the block content */
+    display: flex;
+    /* Use flexbox */
+    flex-direction: column;
+    /* Arrange content vertically */
+    align-items: flex-start;
+    /* Align content to the left */
+    justify-content: center;
+    /* Horizontally center align content */
+    text-align: left;
+    /* Align text to the left */
+    font-size: 24px;
+    /* Adjust the font size as needed */
+    font-weight: bold;
+    /* Add font weight if desired */
+    padding: 20px;
+    /* Add spacing around the content */
+}
+
+/* the content which is in block */
+#nav .navbar-nav li a {
+    color: black;
+}
+
+/* Change text color to red on hover and click */
+/* #nav .navbar-nav li a:hover, */
+/* #nav .navbar-nav li a:active {
+
+    color: red;
+
+} */
+.nav.navbar-nav li a {
+    color: black;
+    /* Default text color */
+    text-decoration: none;
+    /* Remove underline from links */
+}
+
+.nav.navbar-nav li a.active {
+    color: red;
+    /* Text color for the active link (clicked link) */
+}
+
+.table {
+    width: 500px;
+    /* Set the desired width in pixels for the entire table */
+}
+
+.table th {
+    text-align: left;
+}
+
+.table td {
+    text-align: center;
+}
+
+.table {
+    width: 700px;
+    /* Set the desired width in pixels */
+    font-size: 16px;
+    /* Set the desired font size */
+    padding: 50px;
+    /* Add padding as needed */
+}
+
+table {
+    width: 80%;
+    /* Adjust this value to your preference */
+}
+
+#ab th,
+thead {
+    border: none;
+    /* Remove table borders */
+    border-collapse: collapse;
+    /* Collapse cell borders */
+    border-spacing: 0;
+    /* Set border spacing to 0 */
+}
+
+#b {
+    padding-left: 0px;
+}
+
+#ab {
+    padding-left: 20px;
+    /* Add left padding */
+    padding-top: 60px;
+    /* Add top padding */
+}
+
+.table th {
+    text-align: center;
+}
+
+.td {
+    height: 8px;
+    font-weight: bold;
+    border: 2px solid black !important;
+    /* Adjust the thickness and color as needed */
+    font-size: 12px;
+    /* You can adjust the size as needed */
+    padding: 5px;
+    /* Adjust the padding as needed */
+    vertical-align: bottom;
+    /* Adjust the vertical alignment as needed */
+}
+
+#td-2 {
+    border: 2px solid black !important;
+    /* Adjust the thickness and color as needed */
+}
+
+table {
+    border-collapse: collapse;
+}
+
+.tableHead {
+    background-color: #02026f;
+    color: white;
+    border:2px solid black !important
+}
+
+.heading-Blank {
+    background: none;
+}
+
+.breadcrumb-breadcrumb {
+    background-color: #7921B1;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+
+.decription-decription {
+    background-color: #8B008B;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+.dropdown-dropdown {
+    background-color: #157ff0b0 !important;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+.image-image {
+    background-color: #088f75;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+.title-title {
+    background-color: #645403;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+
+
+.footer-footer {
+    background-color: #084e8f;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+.dropdownvalue-dropdownvalue{
+    background-color: #084e8f;
+    color: white;
+    /* Replace #FF0000 with the color code of your choice */
+}
+
+.curr-date-heading {
+    background-color: whitesmoke;
+    color: black;
+    border:2px solid black !important
+}
+
+.prev-date-heading {
+    background-color: whitesmoke;
+    color: black;
+    border:2px solid black  !important;
+
+    /* Replace #FF0000 with the color code of your choice */
+}
+
+.scrollable-content {
+    overflow-y: auto;
+    max-height: 500px;
+    /* Adjust the height as needed */
+}
+
+.table-container {
+    padding: 10px;
+    /* Adjust the padding as needed */
+    /* Optional: Add a border for separation */
+}
+
+#tb-1 {
+    padding-top: 20px;
+}
+
+#dashboard {
+    background-color: #152c5e;
+}
+
+/* #desktopChrome {
+    background-color:whitesmoke;
+    color:red;
+} */
+
+#footer-1 {
+    text-align: center;
+    font-size: medium;
+}
+
+.container-fluid {
+    background-color: #c5b1f3;
+    border: 1px solid #000;
+    /* You can adjust the border thickness and color as needed */
+    width: 115%;
+}
+
+#ConsoleLogs {
+    background-color: #6946c6;
+    margin-left: 50px;
+    color: white;
+
+}
+.row {
+    display: flex;
+    overflow-x: auto; /* Allow horizontal scrolling */
+    width: 100%; /* Set width as needed */
+    white-space: nowrap; /* Prevent line breaks */
+}
+
+.col-md-1 {
+    width: 100px; /* Adjust the width of each box */
+    margin-right: 10px; /* Add some spacing between boxes */
+    flex-shrink: 0; /* Prevent boxes from shrinking */
+}
+
+/* Optional: styling for the scrollbar */
+.row::-webkit-scrollbar {
+    height: 8px;
+}
+
+.row::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.row::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #f2f2f2;
+}
+.fail {
+    color: red;
+}
+.custom-dropdown-container {
+    max-width: 300px;
+}
+
+.custom-dropdown-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.custom-dropdown {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+.custom-dropdown:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+.clickable {
+color: red;
+}
+#admin{
+    color:black
+}
+#admin:hover{
+    background-color: #152c5e;
+    /* Hover background color */
+    color: white;
+    /* Hover text color */
+}

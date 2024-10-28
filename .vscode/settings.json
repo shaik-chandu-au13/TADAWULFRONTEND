@@ -1,0 +1,5 @@
+{
+    "java.configuration.runtimes": [],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic"
+}
