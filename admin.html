@@ -68,52 +68,54 @@
         bottom: 0;
       }
       .scrollable-container {
-            height: 70vh; /* Adjust height as needed */
-            overflow-y: auto;
-            border: 1px solid #ccc;
-        }
-        .navbar {
-  background-color: white; /* Background color */
-  overflow: hidden; /* Ensure content doesn't overflow */
-}
+        height: 70vh; /* Adjust height as needed */
+        overflow-y: auto;
+        border: 1px solid #ccc;
+      }
+      .navbar {
+        background-color: white; /* Background color */
+        overflow: hidden; /* Ensure content doesn't overflow */
+      }
 
-/* Style the list (remove list-style and padding) */
-.navbar ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
+      /* Style the list (remove list-style and padding) */
+      .navbar ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
 
-/* Style list items (horizontal layout) */
-.navbar ul li {
-  float: left;
-}
+      /* Style list items (horizontal layout) */
+      .navbar ul li {
+        float: left;
+      }
 
-/* Style links within list items */
-.navbar ul li a {
-  display: block;
-  color: black; /* Link text color */
-  text-align: center;
-  padding: 14px 16px; /* Padding around links */
-  text-decoration: none;
-}
+      /* Style links within list items */
+      .navbar ul li a {
+        display: block;
+        color: black; /* Link text color */
+        text-align: center;
+        padding: 14px 16px; /* Padding around links */
+        text-decoration: none;
+      }
 
-/* Change link color on hover */
-.navbar ul li a:hover {
-  background-color:#152c5e; /* Hover background color */
-  color: white; /* Hover text color */
-}
-#admin {
-  background-color: #152c5e;
-  color: white;
-}
-
+      /* Change link color on hover */
+      .navbar ul li a:hover {
+        background-color: #152c5e; /* Hover background color */
+        color: white; /* Hover text color */
+      }
+      #admin {
+        background-color: #152c5e;
+        color: white;
+      }
     </style>
   </head>
 
   <body>
     <!-- Header -->
-    <header style="background-color: #152c5e;padding:20px 0" class="container-fluid shadow-sm">
+    <header
+      style="background-color: #152c5e; padding: 20px 0"
+      class="container-fluid shadow-sm"
+    >
       <div class="row align-items-center">
         <!-- Left Image -->
         <div class="col-md-2 text-left">
@@ -131,21 +133,51 @@
           </h1>
         </div>
       </div>
-    </header>    
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" style="padding: 0; height: 40px;">
-        <div class="container" style="max-width: 95%;">
-            <ul class="navbar-nav mr-auto" style="height: 100%; display: flex; align-items: center;color: rgb(0, 0, 0);">
-                <li class="nav-item">
-                    <a class="nav-link " href="./home_page.html" id="runPack" style="font-weight: bold; padding: 5px 10px;">Run Pack</a>
-                </li>
-                <li class="nav-item">
-                    <a style="font-weight: bold; padding: 5px 10px;" class="nav-link " href="./dashboard.html" id="dashboard">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a style="font-weight: bold; padding: 5px 10px;" id="admin" class="nav-link active"href="#" id="admin">Admin</a>
-                </li>
-            </ul>
-        </div>
+    </header>
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white shadow-sm"
+      style="padding: 0; height: 40px"
+    >
+      <div class="container" style="max-width: 95%">
+        <ul
+          class="navbar-nav mr-auto"
+          style="
+            height: 100%;
+            display: flex;
+            align-items: center;
+            color: rgb(0, 0, 0);
+          "
+        >
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              href="./home_page.html"
+              id="runPack"
+              style="font-weight: bold; padding: 5px 10px"
+              >Run Pack</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              style="font-weight: bold; padding: 5px 10px"
+              class="nav-link"
+              href="./dashboard.html"
+              id="dashboard"
+              >Dashboard</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              style="font-weight: bold; padding: 5px 10px"
+              id="admin"
+              class="nav-link active"
+              href="#"
+              id="admin"
+              >Admin</a
+            >
+          </li>
+        </ul>
+      </div>
     </nav>
     <!-- <div class="navbar-1">
         <ul class="container">
@@ -163,140 +195,144 @@
         </ul>
       </div> -->
     <div class="container-fluid scrollable-container">
+      <!-- Navbar -->
 
-    <!-- Navbar -->
-    
-
-    <!-- Login Section -->
-    <div id="loginSection" class="container" style="margin-bottom: 2rem">
-      <div class="row justify-content-center">
-        <div class="col-md-6">
-          <h2 class="text-center mt-5">Login</h2>
-          <form id="loginForm" class="bg-light p-4 shadow-sm rounded">
-            <div class="mb-3">
-              <label for="userId" class="form-label">User ID</label>
-              <input
-                type="text"
-                id="userId"
-                class="form-control"
-                placeholder="Enter User ID"
-                required
-              />
-            </div>
-            <div class="mb-3" id="passwordField" style="display: none">
-              <label for="password" class="form-label">Password</label>
-              <input
-                type="password"
-                id="password"
-                class="form-control"
-                placeholder="Enter Password"
-                required
-              />
-            </div>
-            <div class="d-flex justify-content-center mb-3">
-              <button type="button" class="btn btn-primary" onclick="login()">
-                Login
-              </button>
-            </div>
-            <div class="d-flex justify-content-center">
-              <p id="loginError" class="text-danger mt-3" style="display: none">
-                Invalid User ID or Password.
-              </p>
-            </div>
-          </form>
+      <!-- Login Section -->
+      <div id="loginSection" class="container" style="margin-bottom: 2rem">
+        <div class="row justify-content-center">
+          <div class="col-md-6">
+            <h2 class="text-center mt-5">Login</h2>
+            <form id="loginForm" class="bg-light p-4 shadow-sm rounded">
+              <div class="mb-3">
+                <label for="userId" class="form-label">User ID</label>
+                <input
+                  type="text"
+                  id="userId"
+                  class="form-control"
+                  placeholder="Enter User ID"
+                  required
+                />
+              </div>
+              <div class="mb-3" id="passwordField" style="display: none">
+                <label for="password" class="form-label">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  class="form-control"
+                  placeholder="Enter Password"
+                  required
+                />
+              </div>
+              <div class="d-flex justify-content-center mb-3">
+                <button type="button" class="btn btn-primary" onclick="login()">
+                  Login
+                </button>
+              </div>
+              <div class="d-flex justify-content-center">
+                <p
+                  id="loginError"
+                  class="text-danger mt-3"
+                  style="display: none"
+                >
+                  Invalid User ID or Password.
+                </p>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- JSON Form Section -->
-    <div id="jsonFormSection" class="container mt-5">
-      <div class="d-flex justify-content-end mt-3">
-        <button type="button" class="btn btn-danger" onclick="logout()">
-          Logout
-        </button>
-      </div>
-      <h2 class="text-center">Manage Page, Menu and Submenu</h2>
+      <!-- JSON Form Section -->
+      <div id="jsonFormSection" class="container mt-5">
+        <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-danger" onclick="logout()">
+            Logout
+          </button>
+        </div>
+        <h2 class="text-center">Manage Page, Menu and Submenu</h2>
 
-      <form id="jsonForm" class="bg-light p-4 shadow-sm rounded">
-        <!-- Add Section -->
-        <div class="mb-3">
-          <label for="newMainCategory" class="form-label">Page</label>
-          <input
-            type="text"
-            id="newMainCategory"
-            class="form-control"
-            placeholder="Enter new or existing page name"
-          />
-        </div>
-        <div class="mb-3">
-          <label for="newMenu" class="form-label">Menu</label>
-          <input
-            type="text"
-            id="newMenu"
-            class="form-control"
-            placeholder="Enter new or existing Menu Name"
-          />
-        </div>
-        <div class="mb-3">
-          <label for="newPages" class="form-label">Sub Menu </label>
-          <input
-            type="text"
-            id="newPages"
-            class="form-control"
-            placeholder="Enter new submenu"
-          />
-        </div>
-        <button
-          type="button"
-          class="btn btn-success w-100 mb-3"
-          onclick="addToJson()"
-        >
-          Add to runpack list
-        </button>
-
-        <!-- Delete Section -->
-        <h4>Delete</h4>
-        <div class="mb-3">
-          <label for="selectMainCategory" class="form-label">Select Page</label>
-          <select
-            id="selectMainCategory"
-            class="form-select"
-            onchange="populateMenus()"
+        <form id="jsonForm" class="bg-light p-4 shadow-sm rounded">
+          <!-- Add Section -->
+          <div class="mb-3">
+            <label for="newMainCategory" class="form-label">Page</label>
+            <input
+              type="text"
+              id="newMainCategory"
+              class="form-control"
+              placeholder="Enter new or existing page name"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="newMenu" class="form-label">Menu</label>
+            <input
+              type="text"
+              id="newMenu"
+              class="form-control"
+              placeholder="Enter new or existing Menu Name"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="newPages" class="form-label">Sub Menu </label>
+            <input
+              type="text"
+              id="newPages"
+              class="form-control"
+              placeholder="Enter new submenu"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn btn-success w-100 mb-3"
+            onclick="addToJson()"
           >
-            <option value="">--Select Page--</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="selectMenu" class="form-label">Select Menu</label>
-          <select
-            id="selectMenu"
-            class="form-select"
-            onchange="populatePages()"
-          >
-            <option value="">--Select Menu--</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="selectPage" class="form-label">Select Sub Menu</label>
-          <select id="selectPage" class="form-select">
-            <option value="">--Select Sub Menu--</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          class="btn btn-danger w-100"
-          onclick="deleteFromJson()"
-        >
-          Delete
-        </button>
-      </form>
+            Add to runpack list
+          </button>
 
-      <!-- <h4 class="mt-5">Updated JSON Data:</h4>
+          <!-- Delete Section -->
+          <h4>Delete</h4>
+          <div class="mb-3">
+            <label for="selectMainCategory" class="form-label"
+              >Select Page</label
+            >
+            <select
+              id="selectMainCategory"
+              class="form-select"
+              onchange="populateMenus()"
+            >
+              <option value="">--Select Page--</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="selectMenu" class="form-label">Select Menu</label>
+            <select
+              id="selectMenu"
+              class="form-select"
+              onchange="populatePages()"
+            >
+              <option value="">--Select Menu--</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="selectPage" class="form-label">Select Sub Menu</label>
+            <select id="selectPage" class="form-select">
+              <option value="">--Select Sub Menu--</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            class="btn btn-danger w-100"
+            onclick="deleteFromJson()"
+          >
+            Delete
+          </button>
+        </form>
+
+        <!-- <h4 class="mt-5">Updated JSON Data:</h4>
         <pre id="jsonDisplay" class="bg-dark text-light p-3 rounded"></pre> -->
 
-      <!-- Logout Button -->
+        <!-- Logout Button -->
+      </div>
     </div>
-</div>
 
     <!-- Footer -->
     <footer id="footer-1">
@@ -358,6 +394,9 @@
           document.getElementById("loginSection").style.display = "none";
           document.getElementById("jsonFormSection").style.display = "block";
           populateMainCategories(); // Populate categories after login
+
+          // Store login state in sessionStorage
+          sessionStorage.setItem("isLoggedIn", "true");
         } else {
           loginError.textContent = "Invalid User ID or Password.";
           loginError.style.display = "block";
@@ -552,8 +591,20 @@
         document.getElementById("userId").value = "";
         document.getElementById("password").value = "";
         document.getElementById("loginError").style.display = "none";
-      }
 
+        // Clear login state from sessionStorage
+        sessionStorage.removeItem("isLoggedIn");
+      }
+      window.onload = function () {
+        if (sessionStorage.getItem("isLoggedIn") !== "true") {
+          logout(); // Ensure the user is logged out if not authenticated
+        }
+      };
+
+      // Logout the user if they navigate away (e.g., using the back button)
+      window.onbeforeunload = function () {
+        logout();
+      };
       // Initialize the page by displaying initial JSON data and populating main categories
       displayJsonData();
       populateMainCategories();
