@@ -107,36 +107,30 @@
         background-color: #152c5e;
         color: white;
       }
+            
+      #logoutButton {
+        margin: 0 15px 0 0;
+        padding: 5px;
+      }
+
     </style>
   </head>
 
   <body>
     <!-- Header -->
-    <header
-      style="background-color: #152c5e; padding: 20px 0"
-      class="container-fluid shadow-sm"
-    >
+    <header style="background-color: #152c5e;" class="container-fluid p-0 shadow-sm">
       <div class="row align-items-center">
-        <!-- Left Image -->
-        <div class="col-md-2 text-left">
-          <img
-            src="./images/SaudiExchange.jpg"
-            alt="Saudi Exchange Logo"
-            class="img-fluid"
-            style="max-height: 143px"
-          />
-        </div>
-        <!-- Title and Description -->
-        <div class="col-md-8 text-center">
-          <h1 style="color: white" class="fw-bold mb-0">
-            Saudi Exchange Automation Pack Selection
-          </h1>
-        </div>
+          <!-- Left Image -->
+          <div class="col-md-2 text-left">
+              <img src="./images/SaudiExchange.jpg" alt="Saudi Exchange Logo" class="img-fluid" style="max-height: 143px;">
+          </div>
+          <!-- Title and Description -->
+          <div class="col-md-8 text-center">
+              <h1 style="color: white;" class="fw-bold mb-0">Saudi Exchange Automation Pack Selection</h1>
+          </div>
       </div>
-    </header>
-    <nav
-      class="navbar navbar-expand-lg navbar-light bg-white shadow-sm"
-      style="padding: 0; height: 40px"
+      <nav
+      class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" style="padding: 1px 0 1px 0 !important;"
     >
       <div class="container" style="max-width: 95%">
         <ul
@@ -178,7 +172,12 @@
           </li>
         </ul>
       </div>
+      <button id="logoutButton" type="button" class="btn btn-danger" onclick="logout()">
+        Logout
+    </button>
     </nav>
+  </header>
+
     <!-- <div class="navbar-1">
         <ul class="container">
          <ul class="navbar-nav mr-auto" style="height: 100%; display: flex; align-items: center;color: rgb(0, 0, 0);">
@@ -194,9 +193,11 @@
             </ul>
         </ul>
       </div> -->
-    <div class="container-fluid scrollable-container">
+    <div class="container-fluid scrollable-container" style="position: relative;">
       <!-- Navbar -->
-
+        <!-- <button id="logoutButton" type="button" class="btn btn-danger" onclick="logout()">
+            Logout
+        </button> -->
       <!-- Login Section -->
       <div id="loginSection" class="container" style="margin-bottom: 2rem">
         <div class="row justify-content-center">
@@ -244,94 +245,154 @@
 
       <!-- JSON Form Section -->
       <div id="jsonFormSection" class="container mt-5">
-        <div class="d-flex justify-content-end mt-3">
-          <button type="button" class="btn btn-danger" onclick="logout()">
-            Logout
-          </button>
+        
+        <h2 class="text-center">Manage Run-Pack</h2>
+    
+        <div class="row">
+            <!-- Add Section on the Left -->
+            <div class="col-md-6">
+                <form id="jsonForm" class="bg-light p-4 shadow-sm rounded">
+                    <h4 class="text-center">Add</h4>
+                    <div class="mb-3">
+                        <label for="newMainCategory" class="form-label">Page</label>
+                        <input
+                            type="text"
+                            id="newMainCategory"
+                            class="form-control"
+                            placeholder="Enter new or existing page name"
+                        />
+                    </div>
+                    <div class="mb-3">
+                        <label for="newMenu" class="form-label">Menu</label>
+                        <input
+                            type="text"
+                            id="newMenu"
+                            class="form-control"
+                            placeholder="Enter new or existing Menu Name"
+                        />
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPages" class="form-label">Sub Menu</label>
+                        <input
+                            type="text"
+                            id="newPages"
+                            class="form-control"
+                            placeholder="Enter new submenu"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        class="btn btn-success w-100 mb-3"
+                        onclick="addToJson()"
+                    >
+                    Click to add in run-pack list
+                    </button>
+                </form>
+            </div>
+    
+            <!-- Delete Section on the Right -->
+            <div class="col-md-6">
+                <form class="bg-light p-4 shadow-sm rounded">
+                    <h4 class="text-center">Delete</h4>
+                    <div class="mb-3">
+                        <label for="selectMainCategory" class="form-label">Select Page</label>
+                        <select
+                            id="selectMainCategory"
+                            class="form-select"
+                            onchange="populateMenus()"
+                        >
+                            <option value="">--Select Page--</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="selectMenu" class="form-label">Select Menu</label>
+                        <select
+                            id="selectMenu"
+                            class="form-select"
+                            onchange="populatePages()"
+                        >
+                            <option value="">--Select Menu--</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="selectPage" class="form-label">Select Sub Menu</label>
+                        <select id="selectPage" class="form-select">
+                            <option value="">--Select Sub Menu--</option>
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn btn-danger w-100"
+                        onclick="deleteFromJson()"
+                    >
+                    Click to delete from run-pack list
+                    </button>
+                </form>
+            </div>
         </div>
-        <h2 class="text-center">Manage Page, Menu and Submenu</h2>
+    </div>
 
-        <form id="jsonForm" class="bg-light p-4 shadow-sm rounded">
-          <!-- Add Section -->
-          <div class="mb-3">
-            <label for="newMainCategory" class="form-label">Page</label>
-            <input
-              type="text"
-              id="newMainCategory"
-              class="form-control"
-              placeholder="Enter new or existing page name"
-            />
-          </div>
-          <div class="mb-3">
-            <label for="newMenu" class="form-label">Menu</label>
-            <input
-              type="text"
-              id="newMenu"
-              class="form-control"
-              placeholder="Enter new or existing Menu Name"
-            />
-          </div>
-          <div class="mb-3">
-            <label for="newPages" class="form-label">Sub Menu </label>
-            <input
-              type="text"
-              id="newPages"
-              class="form-control"
-              placeholder="Enter new submenu"
-            />
-          </div>
-          <button
-            type="button"
-            class="btn btn-success w-100 mb-3"
-            onclick="addToJson()"
-          >
-            Add to runpack list
-          </button>
+  <div id="jsonEditSection" class="container mt-1">
+    <h2 class="text-center">Manage Mobile Options</h2>
 
-          <!-- Delete Section -->
-          <h4>Delete</h4>
-          <div class="mb-3">
-            <label for="selectMainCategory" class="form-label"
-              >Select Page</label
-            >
-            <select
-              id="selectMainCategory"
-              class="form-select"
-              onchange="populateMenus()"
-            >
-              <option value="">--Select Page--</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="selectMenu" class="form-label">Select Menu</label>
-            <select
-              id="selectMenu"
-              class="form-select"
-              onchange="populatePages()"
-            >
-              <option value="">--Select Menu--</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="selectPage" class="form-label">Select Sub Menu</label>
-            <select id="selectPage" class="form-select">
-              <option value="">--Select Sub Menu--</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            class="btn btn-danger w-100"
-            onclick="deleteFromJson()"
-          >
-            Delete
-          </button>
+    <div class="row">
+      <!-- Section to Add New Models or Versions -->
+      <div class="col-md-6">
+        <form class="bg-light p-4 shadow-sm rounded">
+            <h4 class="text-center">Add Model or Version</h4>
+            <div class="mb-3">
+                <label for="addSelectOS" class="form-label">Select OS</label>
+                <select id="addSelectOS" class="form-select">
+                    <option value="">--Select OS--</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="newModel" class="form-label">New Model</label>
+                <input type="text" id="newModel" class="form-control" placeholder="Enter new model name">
+            </div>
+            <div class="mb-3">
+                <label for="newVersion" class="form-label">New Version</label>
+                <input type="text" id="newVersion" class="form-control" placeholder="Enter new version">
+            </div>
+            <button type="button" class="btn btn-success w-100" onclick="addModelOrVersion()">
+              Add Model or Version
+            </button>
         </form>
+    </div>
+        <!-- Section to Delete Models or Versions -->
+        <div class="col-md-6">
+            <form class="bg-light p-4 shadow-sm rounded">
+                <h4 class="text-center">Delete Model or Version</h4>
+                <div class="mb-3">
+                    <label for="selectOS" class="form-label">Select OS</label>
+                    <select id="selectOS" class="form-select">
+                        <option value="">--Select OS--</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="selectModel" class="form-label">Select Model</label>
+                    <select id="selectModel" class="form-select">
+                        <option value="">--Select Model--</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="selectVersion" class="form-label">Select Version</label>
+                    <select id="selectVersion" class="form-select">
+                        <option value="">--Select Version--</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-danger w-100" onclick="deleteModelOrVersion()">
+                    Delete Selected Model or Version
+                </button>
+            </form>
+        </div>
 
-        <!-- <h4 class="mt-5">Updated JSON Data:</h4>
-        <pre id="jsonDisplay" class="bg-dark text-light p-3 rounded"></pre> -->
+        
+    </div>
+</div>
 
-        <!-- Logout Button -->
-      </div>
+  
+    
     </div>
 
     <!-- Footer -->
@@ -342,7 +403,6 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- JavaScript Logic -->
     <script>
       // Hardcoded credentials
       const validUser = {
@@ -363,45 +423,69 @@
         }
       };
 
-      function login() {
-        const enteredUserId = document.getElementById("userId").value;
-        const enteredPassword = document.getElementById("password").value;
-        const loginError = document.getElementById("loginError");
+      document.getElementById("userId").addEventListener("input", function () {
+    const loginError = document.getElementById("loginError");
+    if (loginError.style.display === "block") {
+        loginError.style.display = "none"; // Hide error when typing in User ID
+    }
+});
 
-        // Reset error display
-        loginError.style.display = "none";
+document.getElementById("password").addEventListener("input", function () {
+    const loginError = document.getElementById("loginError");
+    if (loginError.style.display === "block") {
+        loginError.style.display = "none"; // Hide error when typing in Password
+    }
+});
+document.getElementById("password").addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault(); // Prevent the default form submission
+        login(); // Call the login function
+    }
+});
 
-        // Validation for User ID
-        if (!enteredUserId) {
-          loginError.textContent = "Please enter your User ID.";
-          loginError.style.display = "block";
-          document.getElementById("passwordField").style.display = "none"; // Hide password field
-          return;
-        }
+function login() {
+    const enteredUserId = document.getElementById("userId").value;
+    const enteredPassword = document.getElementById("password").value;
+    const loginError = document.getElementById("loginError");
 
-        // Validation for Password
-        if (!enteredPassword) {
-          loginError.textContent = "Please enter your password.";
-          loginError.style.display = "block";
-          return;
-        }
+    // Reset error display
+    loginError.style.display = "none";
 
-        // Check credentials
-        if (
-          enteredUserId === validUser.userId &&
-          enteredPassword === validUser.password
-        ) {
-          document.getElementById("loginSection").style.display = "none";
-          document.getElementById("jsonFormSection").style.display = "block";
-          populateMainCategories(); // Populate categories after login
+    // Validation for User ID
+    if (!enteredUserId) {
+        loginError.textContent = "Please enter your User ID.";
+        loginError.style.display = "block";
+        document.getElementById("passwordField").style.display = "none"; // Hide password field
+        return;
+    }
 
-          // Store login state in sessionStorage
-          sessionStorage.setItem("isLoggedIn", "true");
-        } else {
-          loginError.textContent = "Invalid User ID or Password.";
-          loginError.style.display = "block";
-        }
-      }
+    // Show password field when User ID is entered
+    document.getElementById("passwordField").style.display = "block";
+
+    // Validation for Password
+    if (!enteredPassword) {
+        loginError.textContent = "Please enter your password.";
+        loginError.style.display = "block";
+        return;
+    }
+
+    // Check credentials
+    if (enteredUserId === validUser.userId && enteredPassword === validUser.password) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("jsonFormSection").style.display = "block";
+        document.getElementById("jsonEditSection").style.display = "block";
+        document.getElementById("logoutButton").style.display = "block";
+
+        
+        populateMainCategories(); // Populate categories after login
+
+        // Store login state in sessionStorage
+        sessionStorage.setItem("isLoggedIn", "true");
+    } else {
+        loginError.textContent = "Invalid User ID or Password.";
+        loginError.style.display = "block";
+    }
+}
 
       let pageData = {};
 
@@ -472,6 +556,69 @@
           });
         }
       }
+
+      // Fetch the JSON data on page load
+// Fetch the JSON data on page load and populate options for deletion or addition
+document.addEventListener("DOMContentLoaded", () => {
+    fetch('/mobileData.json')
+        .then(response => response.json())
+        .then(data => populateSelectOptions(data))
+        .catch(error => console.error('Error fetching JSON data:', error));
+});
+
+// Populate only models and versions for selected OS
+function populateSelectOptions(data) {
+    const osSelect = document.getElementById("selectOS");
+    const modelSelect = document.getElementById("selectModel");
+    const versionSelect = document.getElementById("selectVersion");
+    const addSelectOS = document.getElementById("addSelectOS");
+
+    // Clear existing options
+    osSelect.innerHTML = '<option value="">--Select OS--</option>';
+    addSelectOS.innerHTML = '<option value="">--Select OS--</option>';
+    modelSelect.innerHTML = '<option value="">--Select Model--</option>';
+    versionSelect.innerHTML = '<option value="">--Select Version--</option>';
+
+    // Populate OS options separately for each select element
+    for (const os in data.mobileOptions) {
+        // Create separate options for osSelect
+        const osOption1 = document.createElement("option");
+        osOption1.value = os;
+        osOption1.textContent = os;
+        osSelect.appendChild(osOption1);
+
+        // Create separate options for addSelectOS
+        const osOption2 = document.createElement("option");
+        osOption2.value = os;
+        osOption2.textContent = os;
+        addSelectOS.appendChild(osOption2);
+    }
+
+    // Populate models and versions based on selected OS in osSelect
+    osSelect.addEventListener("change", () => {
+        const selectedOS = osSelect.value;
+        modelSelect.innerHTML = '<option value="">--Select Model--</option>';
+        versionSelect.innerHTML = '<option value="">--Select Version--</option>';
+
+        if (selectedOS && data.mobileOptions[selectedOS]) {
+            // Populate models
+            data.mobileOptions[selectedOS].models.forEach(model => {
+                const modelOption = document.createElement("option");
+                modelOption.value = model;
+                modelOption.textContent = model;
+                modelSelect.appendChild(modelOption);
+            });
+
+            // Populate versions
+            data.mobileOptions[selectedOS].versions.forEach(version => {
+                const versionOption = document.createElement("option");
+                versionOption.value = version;
+                versionOption.textContent = version;
+                versionSelect.appendChild(versionOption);
+            });
+        }
+    });
+}
 
       function addToJson() {
         const mainCategory = document
@@ -584,9 +731,69 @@
             console.error("Error updating JSON:", error);
           });
       }
+// Delete model or version
+function deleteModelOrVersion() {
+    const os = document.getElementById("selectOS").value;
+    const model = document.getElementById("selectModel").value;
+    const version = document.getElementById("selectVersion").value;
+
+    if (!os || (!model && !version)) {
+        alert("Please select an OS and either a model or version to delete.");
+        return;
+    }
+
+    fetch('/delete-json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ os, model, version })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || data.error);
+        refreshOptions();
+        document.dispatchEvent(new Event("DOMContentLoaded"));
+    })
+    .catch(error => console.error('Error:', error));
+}
+function refreshOptions() {
+    fetch('/mobileData.json')
+        .then(response => response.json())
+        .then(data => populateSelectOptions(data))
+        .catch(error => console.error('Error fetching JSON data:', error));
+}
+
+// Add new model
+function addModelOrVersion() {
+    const os = document.getElementById("addSelectOS").value;
+    const model = document.getElementById("newModel").value;
+    const version = document.getElementById("newVersion").value;
+    const type = model ? 'model' : 'version';
+
+    if (!os || (!model && !version)) {
+        alert("Please select an OS and enter a model or version.");
+        return;
+    }
+
+    fetch('/add-json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ os, model, version, type })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || data.error);
+        refreshOptions();
+        document.dispatchEvent(new Event("DOMContentLoaded"));
+    })
+    .catch(error => console.error('Error:', error));
+}
+
 
       function logout() {
         document.getElementById("jsonFormSection").style.display = "none";
+        document.getElementById("jsonEditSection").style.display = "none";
+        document.getElementById("logoutButton").style.display = "none";
+
         document.getElementById("loginSection").style.display = "block";
         document.getElementById("userId").value = "";
         document.getElementById("password").value = "";
@@ -595,6 +802,7 @@
         // Clear login state from sessionStorage
         sessionStorage.removeItem("isLoggedIn");
       }
+      
       window.onload = function () {
         if (sessionStorage.getItem("isLoggedIn") !== "true") {
           logout(); // Ensure the user is logged out if not authenticated
