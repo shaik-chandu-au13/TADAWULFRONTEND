@@ -7,53 +7,54 @@ body {
     /* overflow-y: auto; Enable vertical scrolling */
     max-height: 100vh; /* Ensure that the content doesn't exceed viewport height */
 }
-
-/* Basic styling for the navigation bar */
-.navbar-1 {
-    background-color: whitesmoke;
-    /* Background color */
-    overflow: hidden;
-    /* Ensure content doesn't overflow */
-    margin-bottom: 20px;
+header{
+    position: fixed;
 }
+.navbar {
+    background-color: white; /* Background color */
+    overflow: hidden; /* Ensure content doesn't overflow */
+    min-height: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
 
-/* Style the list (remove list-style and padding) */
-.navbar-1 ul {
+  /* Style the list (remove list-style and padding) */
+  .navbar ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
-}
+    margin-left: 45px;
 
-/* Style list items (horizontal layout) */
-.navbar-1 ul li {
+  }
+
+  /* Style list items (horizontal layout) */
+  .navbar ul li {
     float: left;
-}
+  }
 
-/* Style links within list items */
-.navbar-1 ul li a {
+  /* Style links within list items */
+  .navbar ul li a {
     display: block;
-    color: black;
-    /* Link text color */
+    color: black; /* Link text color */
     text-align: center;
-    padding: 14px 16px;
-    /* Padding around links */
+    padding: 5px 16px; /* Padding around links */
     text-decoration: none;
-}
+    font-weight: bold !important;
+  }
 
-/* Change link color on hover */
-.navbar-1 ul li a:hover {
-    background-color: #152c5e;
-    /* Hover background color */
-    color: white;
-    /* Hover text color */
-}
+  /* Change link color on hover */
+  .navbar ul li a:hover {
+    background-color: #152c5e; /* Hover background color */
+    color: white; /* Hover text color */
+  }
 
 .container {
-    position: absolute;
+    /* position: absolute; */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    padding-top: 213px;
 }
 
 /* CSS for buttons */
@@ -126,9 +127,9 @@ body {
 }
 
 /* the content which is in block */
-#nav .navbar-nav li a {
+/* #nav .navbar-nav li a {
     color: black;
-}
+} */
 
 /* Change text color to red on hover and click */
 /* #nav .navbar-nav li a:hover, */
@@ -137,17 +138,7 @@ body {
     color: red;
 
 } */
-.nav.navbar-nav li a {
-    color: black;
-    /* Default text color */
-    text-decoration: none;
-    /* Remove underline from links */
-}
 
-.nav.navbar-nav li a.active {
-    color: red;
-    /* Text color for the active link (clicked link) */
-}
 
 .table {
     width: 500px;
@@ -312,15 +303,19 @@ table {
 } */
 
 #footer-1 {
+    background-color: #152c5e;
+    color: white;
     text-align: center;
-    font-size: medium;
-}
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+  }
 
 .container-fluid {
     background-color: #c5b1f3;
-    border: 1px solid #000;
     /* You can adjust the border thickness and color as needed */
     width: 115%;
+    padding: 0px !important;
 }
 
 #ConsoleLogs {
@@ -406,3 +401,8 @@ color: red;
     color: white;
     /* Hover text color */
 }
+.scrollable-container {
+    height: 70vh; /* Adjust height as needed */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+  }
