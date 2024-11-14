@@ -49,12 +49,12 @@ body {
 }
 
 /* Header Styles */
-header {
+/* header {
   background-color: #4f3d90;
   color: #fff;
   text-align: center;
   padding: 20px 0;
-}
+} */
 
 #table {
   margin-top: 20px;
@@ -160,13 +160,7 @@ button:hover {
   margin-bottom: 20px;
 } */
 
-/* Footer Styles */
-footer {
-  text-align: center;
-  background-color: #ffffff;
-  color: #000000;
-  padding: 10px 0;
-}
+
 
 /* Show the modal when needed */
 /* .modal.hidden {
@@ -299,14 +293,14 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f4f4f4;
 }
-.header {
+/* .header {
   background-color: #152c5e;
   color: white;
   padding: 20px;
   text-align: center;
   font-size: 1.5rem;
   font-weight: bold;
-}
+} */
 .card-custom {
   border: none;
   border-radius: 10px;
@@ -342,10 +336,8 @@ label {
 }
 footer {
   text-align: center;
-  padding: 10px 0;
   background-color: #152c5e;
   color: white;
-  font-weight: bold;
   position: fixed;
   width: 100%;
   bottom: 0;
@@ -385,7 +377,7 @@ footer {
   color: white; /* Text color */
   text-align: center; /* Center align text */
 }
-.header {
+/* .header {
   background-color: #f8f9fa;
   padding: 20px 0;
 }
@@ -409,7 +401,7 @@ footer {
   font-weight: bold;
   text-align: center;
   color: #ffffff;
-}
+} */
 
 #dashboard{
   font-weight: bold; color: #000000; padding: 5px 10px;
@@ -436,4 +428,52 @@ footer {
   height: 100%;
   z-index: 1050;
   overflow-y: auto;
+}
+.back-to-top {
+  position: fixed;
+  bottom: 20px; /* Distance from the bottom */
+  right: 20px; /* Distance from the right */
+  background-color: #152c5e; /* Button color */
+  color: white; /* Text color */
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  z-index: 1000; /* Ensure it stays above other content */
+}
+
+.back-to-top:hover {
+  background-color: #1f4a8e; /* Darker shade on hover */
+}
+.button-same-size {
+  width: 100px; /* Set this to whatever width you prefer */
+}
+
+.modal-header {
+  border: 0;
+  background-color: #152c5e;
+  color: whitesmoke;
+}
+
+.modal-footer{
+  border: 0;
+  padding: 0;
+}
+
+#toggleAllPages{
+margin-top: 0 !important;
+margin-bottom: 0 !important;
+padding-top: 0;
+padding-bottom: 0;
+color: white;
+}
+#toggleAllMenus{
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0;
+padding-bottom: 0;
+color: white;
+
 }

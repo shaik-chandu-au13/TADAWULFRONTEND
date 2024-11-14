@@ -285,7 +285,7 @@
                         class="btn btn-success w-100 mb-3"
                         onclick="addToJson()"
                     >
-                    Click to add in run-pack list
+                    Add in run-pack list
                     </button>
                 </form>
             </div>
@@ -325,7 +325,7 @@
                         class="btn btn-danger w-100"
                         onclick="deleteFromJson()"
                     >
-                    Click to delete from run-pack list
+                    Delete from run-pack list
                     </button>
                 </form>
             </div>
@@ -499,19 +499,19 @@ function login() {
         .then((data) => {
           pageData = data; // Store the JSON data in pageData
           console.log(pageData); // Use the pageData variable
-          displayJsonData(); // Call your function to display the data
+          // displayJsonData(); // Call your function to display the data
           populateMainCategories(); // Populate categories after fetching data
         })
         .catch((error) => console.error("Error loading JSON:", error));
 
       // Function to display initial JSON data
-      function displayJsonData() {
-        document.getElementById("jsonDisplay").textContent = JSON.stringify(
-          pageData,
-          null,
-          2
-        );
-      }
+      // function displayJsonData() {
+      //   document.getElementById("jsonDisplay").textContent = JSON.stringify(
+      //     pageData,
+      //     null,
+      //     2
+      //   );
+      // }
 
       function populateMainCategories() {
         const mainCategorySelect =
@@ -645,11 +645,11 @@ function populateSelectOptions(data) {
           if (!pageData[mainCategory][menu].includes(page)) {
             pageData[mainCategory][menu].push(page); // Add the single page
           }
-          document.getElementById("jsonDisplay").textContent = JSON.stringify(
-            pageData,
-            null,
-            2
-          );
+          // document.getElementById("jsonDisplay").textContent = JSON.stringify(
+          //   pageData,
+          //   null,
+          //   2
+          // );
           populateMainCategories();
           alert("Added successfully!");
 
@@ -696,11 +696,11 @@ function populateSelectOptions(data) {
           }
 
           // Update the displayed JSON and repopulate categories
-          document.getElementById("jsonDisplay").textContent = JSON.stringify(
-            pageData,
-            null,
-            2
-          );
+          // document.getElementById("jsonDisplay").textContent = JSON.stringify(
+          //   pageData,
+          //   null,
+          //   2
+          // );
           populateMainCategories();
 
           // Send updated data to server
@@ -814,7 +814,7 @@ function addModelOrVersion() {
         logout();
       };
       // Initialize the page by displaying initial JSON data and populating main categories
-      displayJsonData();
+      // displayJsonData();
       populateMainCategories();
     </script>
   </body>

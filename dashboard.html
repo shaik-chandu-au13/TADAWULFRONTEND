@@ -65,7 +65,7 @@
         <div class="row align-items-center">
             <!-- Left Image -->
             <div class="col-md-2 text-left">
-                <img src="./images/SaudiExchange.jpg" alt="Saudi Exchange Logo" class="img-fluid" style="max-height: 143px;">
+                <img src="./images/SaudiExchange.jpg" alt="Saudi Exchange Logo" class="img-fluid" style="max-height: 104px;">
             </div>
             <!-- Title and Description -->
             <div class="col-md-8 text-center" >
@@ -111,8 +111,8 @@
                                 </div>
                             </div>
                             <div class="col-md-6 text-right">
-                                <button class="btn btn-primary btn-space" onclick="download()" id="downloadBtn" disabled>Export Current
-                                    Run</button>
+                                <button class="btn btn-primary btn-space" onclick="download('current')" id="downloadBtn" disabled>Export Run Data</button>
+                                <button class="btn btn-primary" onclick="openReport()">Open Automation Report</button>
                             </div>
                         </div>
                         <div class="custom-dropdown-container">
@@ -510,16 +510,23 @@
 
                 
                 <div class="row">
-                    <div class="col-12">
-                        <h3>Console Logs</h3>
+                    <div id="consoleDiv" class="consoleDiv">
+                        <div id="consoleLog">
+                            <h3>Console Logs</h3>
+                            <button class="btn btn-primary btn-space" onclick="download('consolelog')" id="downloadConsoleLogBtn">Export Console Logs</button>
+                        </div>
+                        
                         <div class="console-box" id="consoleLogBox">
                             <!-- Console logs will be inserted here dynamically -->
                         </div>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-12" style="width: -webkit-fill-available;">
-                        <h3>Results</h3>
+                    <div id="resultsDiv" class="resultsDiv" style="width: -webkit-fill-available;">
+                        <div id="resultsHead">
+                            <h3>Results</h3>
+                            <button class="btn btn-primary btn-space" onclick="download('results')" id="downloadResultsBtn">Export Failure results</button>
+                        </div>
                         <div id="tableContainer">
                             <!-- The table will be inserted here -->
                         </div>

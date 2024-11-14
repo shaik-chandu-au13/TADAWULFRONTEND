@@ -1,23 +1,9 @@
 let pageData;
 let uniqueRunids;
 let currentRunData
-window.onload = function () {
-  fetch("http://localhost:3000/api/data")
-    .then((response) => response.json())
-    .then((data) => {
-      getCount(data);
-
-      console.log("API call successful:", data);
-      pageData = data;
-      // Example: Update the table with data from the API
-      // document.getElementById('td-1-1').innerText = data.someValue1;
-      // document.getElementById('td-1-2').innerText = data.someValue2;
-      // Add more DOM updates as needed to display the API data
-    })
-    .catch((error) => {
-      console.error("Error in API call:", error);
-    });
-};
+let previousRunData
+let consoleLogs
+let results
 function enableControls() {
     const date = document.getElementById("date").value;
     const getDataButton = document.getElementById("button");
@@ -28,36 +14,74 @@ function enableControls() {
         runNumberDropdown.disabled = false;
     }
 }
+let date
 
 function getDate() {
-    const date = document.getElementById("date").value;
-  
-    alert(`Selected Date: ${date}`);
-    // const targetDate = "2024-09-10";
-    const filteredData1 = pageData.filter((item) => {
-      return item.date === "";
-    });
-    console.log(date);
-    const filteredData = pageData.filter((item) => {
-      const itemDate = item.date.split("T")[0]; // Extract the date part from ISO string
-      return itemDate === date;
-    });
-    console.log(filteredData)
-    uniqueRunids = [...new Set(filteredData.map((item) => item.RunID))];
-    const runNumberSelect = document.getElementById("runNumber");
+  date = document.getElementById("date").value;
+  alert(`Selected Date: ${date}`);
 
-    runNumberSelect.innerHTML = `<option value="" disabled selected>Select a Run Number</option>`;
-    uniqueRunids.forEach(runID => {
-        const option = document.createElement("option");
-        option.value = runID;
-        option.textContent = runID;
-        runNumberSelect.appendChild(option);
-    });
+  // Send the date as a POST request
+  fetch("http://localhost:3000/api/data", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ date })  // Send the date in JSON format
+  })
+  .then((response) => response.json())
+  .then((data) => {
+      // getCount(data);
+      console.log("API call successful:", data);
+      pageData = data;
 
-  }
+      // Assuming `data` is filtered based on date
+      const uniqueRunids = [...new Set(data.map((item) => item.RunID))];
+      const runNumberSelect = document.getElementById("runNumber");
+
+      runNumberSelect.innerHTML = `<option value="" disabled selected>Select a Run Number</option>`;
+      uniqueRunids.forEach(runID => {
+          const option = document.createElement("option");
+          option.value = runID;
+          option.textContent = runID;
+          runNumberSelect.appendChild(option);
+      });
+  })
+  .catch((error) => {
+      console.error("Error in API call:", error);
+  });
+}
   console.log(uniqueRunids);
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("runNumber").addEventListener("change", function () {
+      const selectedRunID = this.value;
+    
+      fetch("http://localhost:3000/api/compare-runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runID: selectedRunID,selectedDate:date })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Comparison data:", data);
+        const { currentRun, previousRun } = data;
+        currentRunData=currentRun
+        previousRunData = previousRun
+        getCurrentCount(currentRun)
+        console.log(        getCurrentCount(currentRun)      )
+        getPrevCount(previousRun)
+        // Display currentRun and previousRun data for comparison
+        // displayRunData(currentRun, previousRun);
+      })
+      .catch(error => console.error("Error fetching comparison data:", error));
+    });
+  })
 
-  function filterByRunID() {
+
+// function displayRunData(currentRun, previousRun) {
+//   // Implement your display logic to show the Difference_Datas between currentRun and previousRun
+// }
+
+function filterByRunID() {
     const selectedRunID = document.getElementById("runNumber").value;
 
     const filteredDataByRunID = pageData.filter(item => item.RunID === selectedRunID);
@@ -70,183 +94,454 @@ function getDate() {
 }
 
 function getConsoleLogs(filteredDataByRunID) {
-  const consoleLogs = filteredDataByRunID.filter(ele => ele.type === 'Console Log');
+  consoleLogs = filteredDataByRunID.filter(ele => ele.Type === 'Console Log');
+  console.log(filteredDataByRunID.filter(ele => ele.Status !== "PASS"));
   console.log(consoleLogs);
-  
-  const consoleLogBox = document.getElementById("consoleLogBox");
-  consoleLogBox.innerHTML = ''; // Clear previous logs
+  const consolelogdiv = document.getElementById("consoleDiv");
 
-  consoleLogs.forEach(item => {
-      const logMessage = `RunID: ${item.RunID}, Expected: ${item.expected}`;
-      
-      const logDiv = document.createElement("div");
-      logDiv.textContent = logMessage;
-      consoleLogBox.appendChild(logDiv);
-  });
+  if(consoleLogs.length===0){
+    consolelogdiv.style.display = 'block';
+    const downloadConsoleLogBtn = document.getElementById("downloadConsoleLogBtn")
+    downloadConsoleLogBtn.style.display = 'none';
+    
+    const consoleLogBox = document.getElementById("consoleLogBox");
+    tableHtml = '<p>No console logs to display</p>';
+    consoleLogBox.innerHTML = tableHtml
+
+  }else{
+    consolelogdiv.style.display = 'block';
+    const downloadConsoleLogBtn = document.getElementById("downloadConsoleLogBtn")
+    downloadConsoleLogBtn.style.display = 'block';
+
+    const consoleLogBox = document.getElementById("consoleLogBox");
+    consoleLogBox.innerHTML = ''; // Clear previous logs
+  
+    // HTML structure for the console log table
+    let tableHtml = `
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid black;">
+            <thead>
+                <tr>
+                    <th style="background-color:#152c5e;color:white;padding:6px">RunID</th>
+                    <th style="background-color:#152c5e;color:white;padding:6px">Page</th>
+                    <th style="background-color:#152c5e;color:white;padding:6px">Time</th>
+                    <th style="background-color:#152c5e;color:white;padding:6px">Error</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+  
+    // Function to truncate long text
+    function truncateText(text, maxLength = 100) {
+      return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+    }
+  
+    // Populate table rows with truncated console log data
+    consoleLogs.forEach((item, index) => {
+      tableHtml += `
+          <tr data-index="${index}" style="border: 1px solid black; padding: 10px; cursor: pointer;">
+              <td style="padding:5px;">${item.RunID}</td>
+              <td style="padding:5px;">${item.Page}</td>
+              <td style="padding:5px;">${item.Time}</td>
+              <td style="padding:5px;">${truncateText(item.Source_Data)}</td>
+          </tr>
+      `;
+    });
+  
+    // Close the table HTML
+    tableHtml += `
+            </tbody>
+        </table>
+    `;
+  
+    // Insert the table into the console log box container
+    consoleLogBox.innerHTML = tableHtml;
+  
+    // Add event listeners to each row to open a popup with full details
+    document.querySelectorAll("#consoleLogBox table tbody tr").forEach((row) => {
+      row.addEventListener("click", function () {
+        const index = this.getAttribute("data-index");
+        const item = consoleLogs[index];
+  
+        // HTML for the popup
+        const popupHtml = `
+          <html>
+          <head>
+              <title>RunID: ${item.RunID}</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                  th, td { padding: 10px; border: 1px solid black; text-align: left; }
+                  th { background-color: #f2f2f2; }
+              </style>
+          </head>
+          <body>
+              <h2>Details for RunID: ${item.RunID}</h2>
+              <table>
+                  <thead>
+                      <tr>
+                          <th>RunID</th>
+                          <th>Page</th>
+                          <th>Time</th>
+                          <th>Error</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td>${item.RunID}</td>
+                          <td>${item.Page}</td>
+                          <td>${item.Time}</td>
+                          <td>${item.Source_Data}</td>
+                      </tr>
+                  </tbody>
+              </table>
+          </body>
+          </html>
+        `;
+  
+        // Open popup window with complete row data
+        const width = 600;
+        const height = 400;
+        const left = window.innerWidth / 2 - width / 2;
+        const top = window.innerHeight / 2 - height / 2;
+        const popupWindow = window.open("", "_blank", `width=${width},height=${height},top=${top},left=${left}`);
+        popupWindow.document.write(popupHtml);
+        popupWindow.document.close();
+      });
+    });
+  }
+  
 }
 
-
-// Call API on page load
-// URL count
-// Title count
-// Breadcrump count
-// Link count
-// Link state count
-// PDF count
-// Image count
-// Dropdown list count
-let getCount = function (data) {
+function getCurrentCount (data) {
   const passCountURL = data.filter(
-    (item) => item.type === "URL" && item.status === "Pass"
+    (item) => item.Type === ("URL") 
   ).length;
   const failCountURL = data.filter(
-    (item) => item.type === "URL" && item.status === "Fail"
+    (item) => item.Type===("URL") 
   ).length;
   const passCountTitle = data.filter(
-    (item) => item.type === "Title" && item.status === "Pass"
+    (item) => item.Type===("Title") 
   ).length;
   const failCountTitle = data.filter(
-    (item) => item.type === "Title" && item.status === "Fail"
+    (item) => item.Type===("Title")
   ).length;
   const passCountBreadcrumb = data.filter(
-    (item) => item.type === "Breadcrumb" && item.status === "Pass"
+    (item) => item.Type===("Breadcrumb") 
   ).length;
   const failCountBreadcrumb = data.filter(
-    (item) => item.type === "Breadcrumb" && item.status === "Fail"
+    (item) => item.Type===("Breadcrumb") 
   ).length;
-  const passCountLinkCount = data.filter(
-    (item) => item.type === "Link Count" && item.status === "Fail"
-  ).length;
-  const failCountLinkCount = data.filter(
-    (item) => item.type === "Link Count" && item.status === "Fail"
-  ).length;
+  const passCountLinkCountData = data.filter(
+    (item) => item.Type===("Link Count") 
+  );
+  console.log(passCountLinkCountData)
+  const passCountLinkCount = passCountLinkCountData.reduce((acc, cur) => acc + parseInt(cur.Source_Data, 10), 0);
+
+  console.log(passCountLinkCountData,passCountLinkCount)
+
+  const failCountLinkCountData = data.filter(
+    (item) => item.Type===("Link Count") 
+  );
+  const failCountLinkCount = failCountLinkCountData.reduce((acc, cur) => acc + parseInt(cur.Target_Data, 10), 0);
+
   const passCountLinkState = data.filter(
-    (item) => item.type === "Link State" && item.status === "Fail"
+    (item) => item.Type===("Link State") 
   ).length;
   const failCountLinkState = data.filter(
-    (item) => item.type === "Link State" && item.status === "Fail"
+    (item) => item.Type===("Link State") 
   ).length;
   const passCountPDF = data.filter(
-    (item) => item.type === "PDF" && item.status === "Pass"
+    (item) => item.Type===("PDF") 
   ).length;
   const failCountPDF = data.filter(
-    (item) => item.type === "PDF" && item.status === "Fail"
+    (item) => item.Type===("PDF") 
   ).length;
   const passCountImageCount = data.filter(
-    (item) => item.type === "Image Count" && item.status === "Pass"
+    (item) => item.Type===("Image Count") 
   ).length;
   const failCountImageCount = data.filter(
-    (item) => item.type === "Image Count" && item.status === "Fail"
+    (item) => item.Type===("Image Count") 
   ).length;
 
   const passCountDropdownCount = data.filter(
-    (item) => item.type === "Dropdown Count" && item.status === "Pass"
+    (item) => item.Type===("Dropdown") 
   ).length;
   const failCountDropdownCount = data.filter(
-    (item) => item.type === "Dropdown Count" && item.status === "Fail"
+    (item) => item.Type===("Dropdown") 
   ).length;
 
-  const passCountDropdownValue = data.filter(
-    (item) => item.type === "Dropdown Value" && item.status === "Pass"
+  const passCountTableCount = data.filter(
+    (item) => item.Type===('Table Count') 
   ).length;
-  const failCountDropdownValue = data.filter(
-    (item) => item.type === "Dropdown Value" && item.status === "Fail"
+  const failCountTableCount = data.filter(
+    (item) => item.Type===('Table Count') 
+  ).length;
+  const passCountTableRowCount = data.filter(
+    (item) => item.Type===('Table Row Count') 
+  ).length;
+  const failCountTableRowCount = data.filter(
+    (item) => item.Type===('Table Row Count') 
+  ).length;
+  const passCountTableColumnCount = data.filter(
+    (item) => item.Type===('Table Column Count') 
+  ).length;
+  const failCountTableColumnCount = data.filter(
+    (item) => item.Type===('Table Column Count') 
   ).length;
 
-  return {
-    passCountURL: passCountURL,
-    failCountURL: failCountURL,
-    passCountTitle: passCountTitle,
-    failCountTitle: failCountTitle,
-    passCountBreadcrumb: passCountBreadcrumb,
-    failCountBreadcrumb: failCountBreadcrumb,
-    passCountLinkCount: passCountLinkCount,
-    failCountLinkCount: failCountLinkCount,
-    passCountLinkState: passCountLinkState,
-    failCountLinkState: failCountLinkState,
-    passCountPDF: passCountPDF,
-    failCountPDF: failCountPDF,
-    passCountImageCount: passCountImageCount,
-    failCountImageCount: failCountImageCount,
-    passCountDropdownCount: passCountDropdownCount,
-    failCountDropdownCount: failCountDropdownCount,
-    passCountDropdownValue: passCountDropdownValue,
-    failCountDropdownValue: failCountDropdownValue,
-  };
-};
-function fillCurdetails(obj) {}
 
-
-
-function download() {
-  const worksheet = XLSX.utils.json_to_sheet(currentRunData);
+  // fill current url
+  document.getElementById("td-1-1").textContent = passCountURL;
+  document.getElementById("td-2-1").textContent = passCountURL;
+  document.getElementById("td-3-1").classList.add("clickable");
+  document.getElementById("td-3-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "URL")');
   
-  for (let rowIndex = 0; rowIndex < currentRunData.length; rowIndex++) {
-      for (let colIndex = 0; colIndex < Object.keys(currentRunData[rowIndex]).length; colIndex++) {
+  
+  // title
+  document.getElementById("td-7-1").textContent = passCountTitle;
+  document.getElementById("td-8-1").textContent = passCountTitle;
+  document.getElementById("td-9-1").classList.add("clickable");
+  document.getElementById("td-9-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Title")');
+
+  // breadCrumb
+  document.getElementById("td-4-1").textContent = passCountBreadcrumb;
+  document.getElementById("td-5-1").textContent = passCountBreadcrumb;
+  document.getElementById("td-6-1").classList.add("clickable");
+  document.getElementById("td-6-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Breadcrumb")');
+
+  // link count
+  document.getElementById("td-10-1").textContent = passCountLinkCount;
+  document.getElementById("td-11-1").textContent = failCountLinkCount;
+  document.getElementById("td-12-1").textContent = Math.abs(passCountLinkCount - failCountLinkCount);
+  document.getElementById("td-12-1").classList.add("clickable");
+  document.getElementById("td-12-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Link Count")');
+
+  // link state
+  document.getElementById("td-13-1").textContent = passCountLinkState;
+  document.getElementById("td-14-1").textContent = passCountLinkState;
+  document.getElementById("td-15-1").classList.add("clickable");
+  document.getElementById("td-15-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Link State")');
+
+  // PDF count
+  document.getElementById("td-16-1").textContent = passCountPDF;
+  document.getElementById("td-17-1").textContent = passCountPDF;
+  document.getElementById("td-18-1").classList.add("clickable");
+  document.getElementById("td-18-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "PDF")');
+
+  // image 
+  document.getElementById("td-19-1").textContent = passCountImageCount;
+  document.getElementById("td-20-1").textContent = passCountImageCount;
+  document.getElementById("td-21-1").classList.add("clickable");
+  document.getElementById("td-21-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Image Count")');
+
+  // Dropdown
+  document.getElementById("td-22-1").textContent = passCountDropdownCount;
+  document.getElementById("td-23-1").textContent = passCountDropdownCount;
+  document.getElementById("td-24-1").classList.add("clickable");
+  document.getElementById("td-24-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData, "Dropdown")');
+
+  // slider
+  document.getElementById("td-25-1").textContent = passCountTableCount;
+  document.getElementById("td-26-1").textContent = passCountTableCount;
+  document.getElementById("td-27-1").classList.add("clickable");
+  document.getElementById("td-27-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData,"Table Count")');
+
+  document.getElementById("td-28-1").textContent = passCountTableRowCount;
+  document.getElementById("td-29-1").textContent = passCountTableRowCount;
+  document.getElementById("td-30-1").classList.add("clickable");
+  document.getElementById("td-30-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData,"Table Row Count")');
+
+  document.getElementById("td-31-1").textContent = passCountTableColumnCount;
+  document.getElementById("td-32-1").textContent = passCountTableColumnCount;
+  document.getElementById("td-33-1").classList.add("clickable");
+  document.getElementById("td-33-1").setAttribute("onclick", 'openNewWindowWithTable(currentRunData,"Table Column Count")');
+};
+
+function getPrevCount (data) {
+  const passCountURL = data.filter(
+    (item) => item.Type===("URL") 
+  ).length;
+  const failCountURL = data.filter(
+    (item) => item.Type===("URL") 
+  ).length;
+  const passCountTitle = data.filter(
+    (item) => item.Type===("Title") 
+  ).length;
+  const failCountTitle = data.filter(
+    (item) => item.Type===("Title") 
+  ).length;
+  const passCountBreadcrumb = data.filter(
+    (item) => item.Type===("Breadcrumb") 
+  ).length;
+  const failCountBreadcrumb = data.filter(
+    (item) => item.Type===("Breadcrumb") 
+  ).length;
+  const passCountLinkCountData = data.filter(
+    (item) => item.Type===("Link Count") 
+  );
+  console.log(passCountLinkCountData)
+  const passCountLinkCount = passCountLinkCountData.reduce((acc, cur) => acc + parseInt(cur.Source_Data, 10), 0);
+
+  console.log(passCountLinkCountData,passCountLinkCount)
+
+  const failCountLinkCountData = data.filter(
+    (item) => item.Type===("Link Count") 
+  );
+  const failCountLinkCount = failCountLinkCountData.reduce((acc, cur) => acc + parseInt(cur.Target_Data, 10), 0);
+
+  const passCountLinkState = data.filter(
+    (item) => item.Type===("Link State") 
+  ).length;
+  const failCountLinkState = data.filter(
+    (item) => item.Type===("Link State") 
+  ).length;
+  const passCountPDF = data.filter(
+    (item) => item.Type===("PDF") 
+  ).length;
+  const failCountPDF = data.filter(
+    (item) => item.Type===("PDF") 
+  ).length;
+  const passCountImageCount = data.filter(
+    (item) => item.Type===("Image Count") 
+  ).length;
+  const failCountImageCount = data.filter(
+    (item) => item.Type===("Image Count") 
+  ).length;
+
+  const passCountDropdownCount = data.filter(
+    (item) => item.Type===("Dropdown") 
+  ).length;
+  const failCountDropdownCount = data.filter(
+    (item) => item.Type===("Dropdown") 
+  ).length;
+
+  const passCountTableCount = data.filter(
+    (item) => item.Type===('Table Count') 
+  ).length;
+  const failCountTableCount = data.filter(
+    (item) => item.Type===('Table Count') 
+  ).length;
+  const passCountTableRowCount = data.filter(
+    (item) => item.Type===('Table Row Count') 
+  ).length;
+  const failCountTableRowCount = data.filter(
+    (item) => item.Type===('Table Row Count') 
+  ).length;
+  const passCountTableColumnCount = data.filter(
+    (item) => item.Type===('Table Column Count') 
+  ).length;
+  const failCountTableColumnCount = data.filter(
+    (item) => item.Type===('Table Column Count') 
+  ).length;
+
+
+  // fill current url
+  document.getElementById("td-1-2").textContent = passCountURL;
+  document.getElementById("td-2-2").textContent = passCountURL;
+  document.getElementById("td-3-2").classList.add("clickable");
+  document.getElementById("td-3-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "URL")');
+  
+  
+  // title
+  document.getElementById("td-7-2").textContent = passCountTitle;
+  document.getElementById("td-8-2").textContent = passCountTitle;
+  document.getElementById("td-9-2").classList.add("clickable");
+  document.getElementById("td-9-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Title")');
+
+  // breadCrumb
+  document.getElementById("td-4-2").textContent = passCountBreadcrumb;
+  document.getElementById("td-5-2").textContent = passCountBreadcrumb;
+  document.getElementById("td-6-2").classList.add("clickable");
+  document.getElementById("td-6-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Breadcrumb")');
+
+  // link count
+  document.getElementById("td-10-2").textContent = passCountLinkCount;
+  document.getElementById("td-11-2").textContent = failCountLinkCount;
+  document.getElementById("td-12-2").textContent = Math.abs(passCountLinkCount - failCountLinkCount);
+  document.getElementById("td-12-2").classList.add("clickable");
+  document.getElementById("td-12-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Link Count")');
+
+  // link state
+  document.getElementById("td-13-2").textContent = passCountLinkState;
+  document.getElementById("td-14-2").textContent = passCountLinkState;
+  document.getElementById("td-15-2").classList.add("clickable");
+  document.getElementById("td-15-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Link State")');
+
+  // PDF count
+  document.getElementById("td-16-2").textContent = passCountPDF;
+  document.getElementById("td-17-2").textContent = passCountPDF;
+  document.getElementById("td-18-2").classList.add("clickable");
+  document.getElementById("td-18-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "PDF")');
+
+  // image 
+  document.getElementById("td-19-2").textContent = passCountImageCount;
+  document.getElementById("td-20-2").textContent = passCountImageCount;
+  document.getElementById("td-21-2").classList.add("clickable");
+  document.getElementById("td-21-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Image Count")');
+
+  // Dropdown
+  document.getElementById("td-22-2").textContent = passCountDropdownCount;
+  document.getElementById("td-23-2").textContent = passCountDropdownCount;
+  document.getElementById("td-24-2").classList.add("clickable");
+  document.getElementById("td-24-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData, "Dropdown")');
+
+  // slider
+  document.getElementById("td-25-2").textContent = passCountTableCount;
+  document.getElementById("td-26-2").textContent = passCountTableCount;
+  document.getElementById("td-27-2").classList.add("clickable");
+  document.getElementById("td-27-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData,"Table Count")');
+
+  document.getElementById("td-28-2").textContent = passCountTableRowCount;
+  document.getElementById("td-29-2").textContent = passCountTableRowCount;
+  document.getElementById("td-30-2").classList.add("clickable");
+  document.getElementById("td-30-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData,"Table Row Count")');
+
+  document.getElementById("td-31-2").textContent = passCountTableColumnCount;
+  document.getElementById("td-32-2").textContent = passCountTableColumnCount;
+  document.getElementById("td-33-2").classList.add("clickable");
+  document.getElementById("td-33-2").setAttribute("onclick", 'openNewWindowWithTable(previousRunData,"Table Column Count")');
+};
+function download(type) {
+  let data
+  if(type==="consolelog"){
+data = consoleLogs.map((ele)=>{return {RunID:ele.RunID,Page:ele.Page,Time:ele.Time,Error:ele.Source_Data}})
+  }else if(type==="current"){
+    data = currentRunData
+  }
+  else if(type==="results"){
+    data = results
+  }
+  // Create a worksheet from currentRunData
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  
+  // Loop through each cell to apply wrap text for long text cells
+  for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+      for (let colIndex = 0; colIndex < Object.keys(data[rowIndex]).length; colIndex++) {
           const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
           const cell = worksheet[cellAddress];
           
           if (cell && cell.v && cell.v.length > 32767) {
-              const longText = cell.v;
-              const chunks = longText.match(/.{1,32767}/g);
-              
-              // Clear the current cell
-              cell.v = '';
-
-              // Add a merged cell for the long text
-              for (let i = 0; i < chunks.length; i++) {
-                  if (i > 0) {
-                      // Skip rows for subsequent chunks
-                      const newRow = { ...currentRunData[rowIndex] };
-                      newRow[Object.keys(newRow)[colIndex]] = ''; // Empty cell for merged rows
-                      XLSX.utils.sheet_add_json(worksheet, [newRow], { skipHeader: true, origin: -1 });
-                  } else {
-                      cell.v = chunks[i]; // First chunk
-                  }
-              }
-
-              // Merge cells vertically in the worksheet
-              const startRow = rowIndex;
-              const endRow = startRow + chunks.length - 1;
-              worksheet['!merges'] = worksheet['!merges'] || [];
-              worksheet['!merges'].push({ s: { r: startRow, c: colIndex }, e: { r: endRow, c: colIndex } });
+              // Trim text to the maximum length allowed by Excel
+              cell.v = cell.v.slice(0, 32767);
           }
       }
   }
 
+  // Add wrap text styling to the worksheet
+  worksheet['!cols'] = worksheet['!cols'] || [];
+  Object.keys(worksheet).forEach(cellAddress => {
+      if (cellAddress.startsWith('!')) return;
+      worksheet[cellAddress].s = { alignment: { wrapText: true } };
+  });
+
+  // Create and download the workbook
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
   XLSX.writeFile(workbook, "data.xlsx");
 }
 
 
-// function download() {
-//   const csvRows = [];
-//   const headers = Object.keys(currentRunData[0]);
-//   csvRows.push(headers.join(','));
 
-//   // Use a Set to track unique rows based on 'id'
-//   const uniqueRows = new Set();
-
-//   for (const row of currentRunData) {
-//       // Check if the row's ID is already processed
-//       if (!uniqueRows.has(row.id)) {
-//           uniqueRows.add(row.id);
-//           csvRows.push(headers.map(header => {
-//               const escaped = ('' + row[header]).replace(/"/g, '\\"');
-//               return `"${escaped}"`;
-//           }).join(','));
-//       }
-//   }
-
-//   const csvString = csvRows.join('\n');
-//   const blob = new Blob([csvString], { type: 'text/csv' });
-//   const url = URL.createObjectURL(blob);
-//   const a = document.createElement('a');
-//   a.setAttribute('href', url);
-//   a.setAttribute('download', 'data.csv');
-//   a.click();
-// }
 
 
 
@@ -277,7 +572,7 @@ function displayTable() {
   pageData.forEach((item) => {
     const row = document.createElement("tr");
     // Ensure the item has properties for ID, Status, Expected, and Actual
-    const values = [item.id, item.status, item.expected, item.actual]; // Adjust these keys as per your data structure
+    const values = [item.id, item.Status, item.Source_Data, item.Target_Data]; // Adjust these keys as per your data structure
     values.forEach((value) => {
       const td = document.createElement("td");
       td.textContent = value !== undefined ? value : "N/A"; // Handle undefined values
@@ -291,226 +586,147 @@ function displayTable() {
   table.appendChild(tbody);
   tableContainer.appendChild(table);
 }
-const jsonData2 = [
-  {
-    id: 27,
-    status: "Fail",
-    expected:
-      "View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/",
-    type: "Link URL",
-    time: "22:05:49",
-    page: "Main Market-Indices Performance Page",
-    actual: "",
-    step: "Main Market-Indices Performance submenu result links should match",
-    difference:
-      "[[ChangeDelta, position: 0, lines: [View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/] to []]]",
-    section: "Main Market-Indices Performance Submenu",
-    date: "2024-10-12T18:30:00.000Z",
-    scenario: "Validation of Main Market-Indices Performance filter",
-    RunID: "Run220447620",
-  },
-  {
-    id: 27,
-    status: "Fail",
-    expected:
-      "View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/",
-    type: "Link URL",
-    time: "22:05:49",
-    page: "Main Market-Indices Performance Page",
-    actual: "",
-    step: "Main Market-Indices Performance submenu result links should match",
-    difference:
-      "[[ChangeDelta, position: 0, lines: [View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/] to []]]",
-    section: "Main Market-Indices Performance Submenu",
-    date: "2024-10-12T18:30:00.000Z",
-    scenario: "Validation of Main Market-Indices Performance filter",
-    RunID: "Run220447620",
-  },
-  {
-    id: 42,
-    status: "Fail",
-    expected:
-      "View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/",
-    type: "Link URL",
-    time: "22:05:49",
-    page: "Main Market-Indices Performance Page",
-    actual: "",
-    step: "Main Market-Indices Performance submenu result links should match",
-    difference:
-      "[[ChangeDelta, position: 0, lines: [View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhIaYGzp764YQsK8hOTKpKTdINdFRUBABay-j4/] to []]]",
-    section: "Main Market-Indices Performance Submenu",
-    date: "2024-10-12T18:30:00.000Z",
-    scenario: "Validation of Main Market-Indices Performance filter",
-    RunID: "Run220447620",
-  },
 
-  {
-    id: 129,
-    status: "Fail",
-    expected:
-      "View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhngH-zvrhhOwqyE5MqkpN0g10VFQEAFJlGWE!/\nView All-/wps/portal/saudiexchange/newsandreports/issuer-news",
-    type: "Link URL",
-    time: "22:11:36",
-    page: "Main Market-Indices Performance Page",
-    actual: "View All-/wps/portal/saudiexchange/newsandreports/issuer-news",
-    step: "Main Market-Indices Performance submenu result links should match",
-    difference:
-      "[[DeleteDelta, position: 0, lines: [View Historical-/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8DTxCnA3MDILdzUJDLAyNXE30I4EKzHEqMDTTD9aP0o8qTs1JTS5JTfFNLMpOLdGP9PRz8XR2RZEKBpL5RfqRvsiCrnklmSWV-pEhngH-zvrhhOwqyE5MqkpN0g10VFQEAFJlGWE!/]]]",
-    section: "Main Market-Indices Performance Submenu",
-    date: "2024-10-12T18:30:00.000Z",
-    scenario: "Validation of Main Market-Indices Performance filter",
-    RunID: "Run220447620",
-  },
-  {
-    id: 605,
-    status: "Fail",
-    expected:
-      "TAKWEEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMDE!/\nMEPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMDI!/\nBCI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMTA!/\nMAADEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMTE!/\nASLAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMDE!/\nALYAMAMAH STEEL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMDQ!/\nSSP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjA!/\nEAST PIPES-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjE!/\nAMAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjI!/\nCHEMANOL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMDE!/\nSABIC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMTA!/\nSABIC AGRI-NUTRIENTS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMjA!/\nTASNEE-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwNjA!/\nNGC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwOTA!/\nZOUJAJ-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxNTA!/\nALUJAIN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxNzA!/\nFIPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxODA!/\nAPC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMDA!/\nNAMA CHEMICALS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMTA!/\nMAADANIYAH-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMjA!/\nLUBEREF-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMjM!/\nZAMIL INDUST-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyNDA!/\nSIIG-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyNTA!/\nYANSAB-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyOTA!/\nSPM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMDA!/\nSIPCHEM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMTA!/\nADVANCED-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMzA!/\nSAUDI KAYAN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzNTA!/\nSVCP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzNjA!/\nNAJRAN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDI!/\nCITY CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDM!/\nNORTHERN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDQ!/\nUACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDU!/\nOASIS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDc!/\nALKATHIRI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDg!/\nACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMTA!/\nYC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMjA!/\nSAUDI CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMzA!/\nQACCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNDA!/\nSPCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNTA!/\nYCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNjA!/\nEPCCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwODA!/\nTCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTA!/\nJOUF CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTE!/\nRIYADH CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTI!/",
-    type: "Link URL",
-    time: "22:29:11",
-    page: "Main Market-Opening Closing Prices Page",
-    actual:
-      "TAKWEEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMDEvZW4!/\nMEPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMDIvZW4!/\nBCI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMTAvZW4!/\nMAADEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMTEvZW4!/\nASLAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMDEvZW4!/\nALYAMAMAH STEEL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMDQvZW4!/\nSSP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjAvZW4!/\nEAST PIPES-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjEvZW4!/\nAMAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjIvZW4!/\nCHEMANOL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMDEvZW4!/\nSABIC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMTAvZW4!/\nSABIC AGRI-NUTRIENTS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMjAvZW4!/\nTASNEE-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwNjAvZW4!/\nNGC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwOTAvZW4!/\nZOUJAJ-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxNTAvZW4!/\nALUJAIN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxNzAvZW4!/\nFIPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxODAvZW4!/\nAPC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMDAvZW4!/\nNAMA CHEMICALS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMTAvZW4!/\nMAADANIYAH-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMjAvZW4!/\nLUBEREF-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMjMvZW4!/\nZAMIL INDUST-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyNDAvZW4!/\nSIIG-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyNTAvZW4!/\nYANSAB-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyOTAvZW4!/\nSPM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMDAvZW4!/\nSIPCHEM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMTAvZW4!/\nADVANCED-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMzAvZW4!/\nSAUDI KAYAN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzNTAvZW4!/\nSVCP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzNjAvZW4!/\nNAJRAN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDIvZW4!/\nCITY CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDMvZW4!/\nNORTHERN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDQvZW4!/\nUACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDUvZW4!/\nOASIS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDcvZW4!/\nALKATHIRI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDgvZW4!/\nACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMTAvZW4!/\nYC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMjAvZW4!/\nSAUDI CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMzAvZW4!/\nQACCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNDAvZW4!/\nSPCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNTAvZW4!/\nYCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNjAvZW4!/\nEPCCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwODAvZW4!/\nTCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTAvZW4!/\nJOUF CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTEvZW4!/\nRIYADH CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTIvZW4!/",
-    step: "Main Market-Opening Closing Prices submenu table links should match",
-    difference:
-      "[[ChangeDelta, position: 0, lines: [TAKWEEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMDE!/, MEPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMDI!/, BCI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMTA!/, MAADEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEyMTE!/, ASLAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMDE!/, ALYAMAMAH STEEL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMDQ!/, SSP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjA!/, EAST PIPES-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjE!/, AMAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzEzMjI!/, CHEMANOL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMDE!/, SABIC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMTA!/, SABIC AGRI-NUTRIENTS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwMjA!/, TASNEE-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwNjA!/, NGC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIwOTA!/, ZOUJAJ-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxNTA!/, ALUJAIN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxNzA!/, FIPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIxODA!/, APC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMDA!/, NAMA CHEMICALS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMTA!/, MAADANIYAH-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMjA!/, LUBEREF-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyMjM!/, ZAMIL INDUST-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyNDA!/, SIIG-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyNTA!/, YANSAB-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIyOTA!/, SPM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMDA!/, SIPCHEM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMTA!/, ADVANCED-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzMzA!/, SAUDI KAYAN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzNTA!/, SVCP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzIzNjA!/, NAJRAN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDI!/, CITY CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDM!/, NORTHERN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDQ!/, UACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDU!/, OASIS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDc!/, ALKATHIRI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMDg!/, ACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMTA!/, YC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMjA!/, SAUDI CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwMzA!/, QACCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNDA!/, SPCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNTA!/, YCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwNjA!/, EPCCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwODA!/, TCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTA!/, JOUF CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTE!/, RIYADH CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFxbW10MlV0ak5TeXFvNlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9lbi9jb21wYW55U3ltYm9sLzMwOTI!/] to [TAKWEEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMDEvZW4!/, MEPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMDIvZW4!/, BCI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMTAvZW4!/, MAADEN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEyMTEvZW4!/, ASLAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMDEvZW4!/, ALYAMAMAH STEEL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMDQvZW4!/, SSP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjAvZW4!/, EAST PIPES-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjEvZW4!/, AMAK-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzEzMjIvZW4!/, CHEMANOL-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMDEvZW4!/, SABIC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMTAvZW4!/, SABIC AGRI-NUTRIENTS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwMjAvZW4!/, TASNEE-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwNjAvZW4!/, NGC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIwOTAvZW4!/, ZOUJAJ-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxNTAvZW4!/, ALUJAIN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxNzAvZW4!/, FIPCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIxODAvZW4!/, APC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMDAvZW4!/, NAMA CHEMICALS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMTAvZW4!/, MAADANIYAH-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMjAvZW4!/, LUBEREF-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyMjMvZW4!/, ZAMIL INDUST-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyNDAvZW4!/, SIIG-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyNTAvZW4!/, YANSAB-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIyOTAvZW4!/, SPM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMDAvZW4!/, SIPCHEM-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMTAvZW4!/, ADVANCED-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzMzAvZW4!/, SAUDI KAYAN-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzNTAvZW4!/, SVCP-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzIzNjAvZW4!/, NAJRAN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDIvZW4!/, CITY CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDMvZW4!/, NORTHERN CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDQvZW4!/, UACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDUvZW4!/, OASIS-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDcvZW4!/, ALKATHIRI-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMDgvZW4!/, ACC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMTAvZW4!/, YC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMjAvZW4!/, SAUDI CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwMzAvZW4!/, QACCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNDAvZW4!/, SPCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNTAvZW4!/, YCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwNjAvZW4!/, EPCCO-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwODAvZW4!/, TCC-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTAvZW4!/, JOUF CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTEvZW4!/, RIYADH CEMENT-/wps/portal/saudiexchange/hidden/company-profile-main/!ut/p/z1/lY_LboMwEEW_pR9QzQDF9hYFmrSBmkdIApvKQiNiiUAKTvr7payK0vQxu5HO0b0XSthD2aqLrpXRXaua8S9K9up6DO2VQCkDzjF53EhrawW2XHPYzQERLRkmL14ibe4iZjaU__Ixi90RiCMnxBSXyP7m443z8He_nCPC9xcjsharZ5Q2Mn4FXE-cA99smIAfSmbUTkv4l6pRskCGD2nOtr6FrgO7nobu3FcEaU1mc6CuJ6Mr1cgTtbqtfTJKNwMklaoOFNKFmljVBNln_kCV6XoonKluT29nGkzYjTZBMaafjnm-R_10L94D5-jdfQCtJasJ/dz/d5/L0lHSklKSUtVS1VKSUtJS1VRb2dwUklrIS9ZQVlFQUFJTUVBQUFFRU1DS0lNQUdFR09FT01CQkpKRkpGQkpOTkROREJOQ0xJTUVBQSEhLzRKQ2lqSzJNWEhFSUp6S0pOYnNwYmFhaG10MlV0dFZTeXFvMlFBISEvWjdfNUE2MDJIODBPMFZDNDA2ME80R01MODFHNTUvWjZfNUE2MDJIODBPR0YyRTBRRjlCUURFRzEwSzQvdmlldy9ub3JtYWwvZ2xvYmFsL2h0dHA6JTAlMHRhZGF3dWwlMC9jb21wYW55U3ltYm9sLzMwOTIvZW4!/]]]",
-    section: "Main Market-Opening Closing Prices Submenu",
-    date: "2024-10-12T18:30:00.000Z",
-    scenario: "Validation of Main Market-Opening Closing Prices filter",
-    RunID: "Run220447620",
-  },
-];
-
-function openNewWindowWithTable(runID = "Run220447620") {
+function openNewWindowWithTable(data,Type) {
   // Filter data by the selected RunID
-  const filteredData = jsonData2.filter((item) => item.RunID === runID);
+  
+  let filteredData = data.filter((item) => item.Type===Type && item.Status ==="FAIL");
 
+results = filteredData
   // HTML structure for the table
-  let tableHtml = `
-        <table id="runTable" style="width: 100%; border-collapse: collapse; border: 1px solid black;">
-            <thead>
-                <tr>
-                    <th>RunID</th>
-                    <th>Expected</th>
-                    <th>Actual</th>
-                    <th>Difference</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+  console.log(data,Type,filteredData)
+  if(filteredData.length===0){
+    downloadResultsBtn = document.getElementById("downloadResultsBtn")
+    downloadResultsBtn.style.display = 'none';
 
-  // Function to truncate long strings
-  function truncateText(text, maxLength = 70) {
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + "..."
-      : text;
+    tableHtml = '<p>No Failure results to display</p>';
+    document.getElementById("tableContainer").innerHTML = tableHtml;
+  }else{
+    downloadResultsBtn = document.getElementById("downloadResultsBtn")
+    downloadResultsBtn.style.display = 'block';
+    let tableHtml = `
+    <table id="runTable" style="width: 100%; border-collapse: collapse; border: 1px solid black;">
+        <thead>
+            <tr>
+                <th style="background-color:#152c5e;color:white;padding:6px">RunID</th>
+                <th style="background-color:#152c5e;color:white;padding:6px">Page</th>
+                <th style="background-color:#152c5e;color:white;padding:6px">Expected</th>
+                <th style="background-color:#152c5e;color:white;padding:6px" >Actual</th>
+                <th style="background-color:#152c5e;color:white;padding:6px" >Difference</th>
+            </tr>
+        </thead>
+        <tbody>
+`;
+
+// Function to truncate long strings
+function truncateText(text, maxLength = 70) {
+return text.length > maxLength
+  ? text.substring(0, maxLength) + "..."
+  : text;
+}
+
+// Populate the table rows
+filteredData.forEach((item, index) => {
+tableHtml += `
+        <tr data-index="${index}" style="border: 1px solid black; padding: 10px;">
+            <td style="padding:5px;">${item.RunID}</td>
+            <td style="padding:5px;">${item.Page}</td>
+            <td style="padding:5px;">${truncateText(item.Source_Data)}</td>
+            <td style="padding:5px;">${truncateText(item.Target_Data)}</td>
+            <td style="padding:5px;">${truncateText(item.Difference_Data)}</td>
+        </tr>
+    `;
+});
+
+// Close the table HTML
+tableHtml += `
+        </tbody>
+    </table>
+`;
+
+// Insert the table into a container on your page
+document.getElementById("tableContainer").innerHTML = tableHtml;
+
+// Add event listeners to each row for showing full details in a popup
+document.querySelectorAll("#runTable tbody tr").forEach(function (row) {
+row.addEventListener("click", function () {
+  const index = this.getAttribute("data-index");
+  const item = filteredData[index];
+
+  // Open a popup window with full details if any content is long
+  const isContentLong =
+    item.Source_Data.length > 30 ||
+    item.Target_Data.length > 30 ||
+    item.Difference_Data.length > 30;
+
+  
+    const popupHtml = `
+                <html>
+                <head>
+                    <title>RunID: ${item.RunID}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10px;
+                        }
+                        th, td {
+                            padding: 10px;
+                            border: 1px solid black;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f2f2f2;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>Details for RunID: ${item.RunID}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>RunID</th>
+                                <th>Page</th>
+                                <th>Expected</th>
+                                <th>Actual</th>
+                                <th>Difference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${item.RunID}</td>
+                                <td>${item.Page}</td>
+                                <td>${item.Source_Data}</td>
+                                <td>${item.Target_Data}</td>
+                                <td>${item.Difference_Data}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+    const width = 600;
+    const height = 400;
+    const left = window.innerWidth / 2 - width / 2;
+    const top = window.innerHeight / 2 - height / 2;
+
+    const popupWindow = window.open(
+      "",
+      "_blank",
+      `width=${width},height=${height},top=${top},left=${left}`
+    );
+    popupWindow.document.write(popupHtml);
+    popupWindow.document.close();
+  
+});
+});
   }
 
-  // Populate the table rows
-  filteredData.forEach((item, index) => {
-    tableHtml += `
-            <tr data-index="${index}" style="border: 1px solid black; padding: 10px;">
-                <td>${item.RunID}</td>
-                <td>${truncateText(item.expected)}</td>
-                <td>${truncateText(item.actual)}</td>
-                <td>${truncateText(item.difference)}</td>
-            </tr>
-        `;
-  });
-
-  // Close the table HTML
-  tableHtml += `
-            </tbody>
-        </table>
-    `;
-
-  // Insert the table into a container on your page
-  document.getElementById("tableContainer").innerHTML = tableHtml;
-
-  // Add event listeners to each row for showing full details in a popup
-  document.querySelectorAll("#runTable tbody tr").forEach(function (row) {
-    row.addEventListener("click", function () {
-      const index = this.getAttribute("data-index");
-      const item = filteredData[index];
-
-      // Open a popup window with full details if any content is long
-      const isContentLong =
-        item.expected.length > 30 ||
-        item.actual.length > 30 ||
-        item.difference.length > 30;
-
-      if (isContentLong) {
-        const popupHtml = `
-                    <html>
-                    <head>
-                        <title>RunID: ${item.RunID}</title>
-                        <style>
-                            body {
-                                font-family: Arial, sans-serif;
-                                margin: 20px;
-                            }
-                            table {
-                                width: 100%;
-                                border-collapse: collapse;
-                                margin-top: 10px;
-                            }
-                            th, td {
-                                padding: 10px;
-                                border: 1px solid black;
-                                text-align: left;
-                            }
-                            th {
-                                background-color: #f2f2f2;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <h2>Details for RunID: ${item.RunID}</h2>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>RunID</th>
-                                    <th>Expected</th>
-                                    <th>Actual</th>
-                                    <th>Difference</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>${item.RunID}</td>
-                                    <td>${item.expected}</td>
-                                    <td>${item.actual}</td>
-                                    <td>${item.difference}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </body>
-                    </html>
-                `;
-
-        const width = 600;
-        const height = 400;
-        const left = window.innerWidth / 2 - width / 2;
-        const top = window.innerHeight / 2 - height / 2;
-
-        const popupWindow = window.open(
-          "",
-          "_blank",
-          `width=${width},height=${height},top=${top},left=${left}`
-        );
-        popupWindow.document.write(popupHtml);
-        popupWindow.document.close();
-      } else {
-        // If no long content, log the row details in the console box
-        const consoleLogBox = document.getElementById("consoleLogBox");
-        const logMessage = `RunID: ${item.RunID}, Expected: ${item.expected}, Actual: ${item.actual}, Difference: ${item.difference}`;
-
-        const logDiv = document.createElement("div");
-        logDiv.textContent = logMessage;
-        consoleLogBox.appendChild(logDiv);
-      }
-    });
-  });
 }
 
 function changeColor(link) {
@@ -521,4 +737,9 @@ function changeColor(link) {
   });
 
   link.style.color = "red"; // Change the color of the clicked link to red
+}
+
+function openReport() {
+  // Opens the report in a new window
+  window.open("http://localhost:8082/show_report", "_blank", "width=800,height=600");
 }

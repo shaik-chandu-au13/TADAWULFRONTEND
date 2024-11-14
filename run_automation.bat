@@ -1,0 +1,2 @@
+start cmd /k "cd C:\TadawulAuto-master_NEW\TadawulAuto-master\tadawul_auto &&  mvn clean install -Dplatform="web" -Dbrowser="chrome" -Dlanguage="english" -Dsrcurl=https://www.saudiexchange.sa -Dtrgurl=https://www.saudiexchange.sa -Dcucumber.filter.tags=" @feedback  or @OurMarket or @Listing or @Trading or @MarketNewsandReports or @RulesandGuidance or @AboutSaudiExchange""
+@pause
